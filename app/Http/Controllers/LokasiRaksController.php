@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\lokasi_raks;
+use App\Models\rackslocation;
 use Illuminate\Http\Request;
 
 class LokasiRaksController extends Controller
@@ -11,7 +11,7 @@ class LokasiRaksController extends Controller
     {
      $search=$request->input('search');
 
-        $lokasi_raks = lokasi_raks::when($search, function ($query, $search) {
+        $rackslocation = rackslocation::when($search, function ($query, $search) {
             $query->where('lantai', 'like', "%{$search}%")
                 ->orWhere('ruang', 'like', "%{$search}%")
                 ->orWhere('sisi', 'like', "%{$search}%");
@@ -20,12 +20,12 @@ class LokasiRaksController extends Controller
         ->orderBy('id_lokasi', 'asc') // untuk pagination
         ->paginate(10)
         ->withQueryString();
-        return view('lokasi_raks.index', compact('lokasi_raks'));
+        return view('rackslocation.index', compact('rackslocation'));
     }
 
     public function create()
     {
-        return view('lokasi_raks.create');
+        return view('rackslocation.create');
     }
 
     public function store(Request $request)
@@ -36,23 +36,23 @@ class LokasiRaksController extends Controller
             'sisi'   => 'nullable|string|max:50',
         ]);
 
-        lokasi_raks::create($data);
+        rackslocation::create($data);
 
-        return redirect()->route('lokasi_raks.index')
+        return redirect()->route('rackslocation.index')
             ->with('success', 'Lokasi rak berhasil ditambahkan.');
     }
 
-    public function show(lokasi_raks $lokasi_rak)
+    public function show(rackslocation $rackslocation)
     {
-        return view('lokasi_raks.show', compact('lokasi_rak'));
+        return view('rackslocation.show', compact('rackslocation'));
     }
 
-    public function edit(lokasi_raks $lokasi_rak)
+    public function edit(rackslocation $rackslocation)
     {
-        return view('lokasi_raks.edit', compact('lokasi_rak'));
+        return view('rackslocation.edit', compact('rackslocation'));
     }
 
-    public function update(Request $request, lokasi_raks $lokasi_rak)
+    public function update(Request $request, rackslocation $rackslocation)
     {
         $data = $request->validate([
             'lantai' => 'required|string|max:50',
@@ -60,17 +60,17 @@ class LokasiRaksController extends Controller
             'sisi'   => 'nullable|string|max:50',
         ]);
 
-        $lokasi_rak->update($data);
+        $rackslocation->update($data);
 
-        return redirect()->route('lokasi_raks.index')
+        return redirect()->route('rackslocation.index')
             ->with('success', 'Lokasi rak berhasil diperbarui.');
     }
 
-    public function destroy(lokasi_raks $lokasi_rak)
+    public function destroy(rackslocation $rackslocation)
     {
-        $lokasi_rak->delete();
+        $rackslocation->delete();
 
-        return redirect()->route('lokasi_raks.index')
+        return redirect()->route('rackslocation.index')
             ->with('success', 'Lokasi rak berhasil dihapus.');
     }
 }

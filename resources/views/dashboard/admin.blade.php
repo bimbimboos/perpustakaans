@@ -1,215 +1,502 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Bimantara Pustaka</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-@section('content')
-    <div class="container">
-        <h1 class="mb-4 fw-bold text-center">Dashboard Admin</h1>
-        <p class="text-center text-muted">Halo, {{ Auth::user()->name }}</p>
-
-        {{-- Navbar kecil khusus dashboard --}}
-        @if(Request::is('dashboard*'))
-            <nav class="navbar navbar-expand-lg shadow-sm mb-4 rounded bg-white">
-                <div class="container-fluid">
-                    <span class="navbar-brand fw-bold">📖 Perpus Mbolali</span>
-
-                    <div class="dropdown ms-auto">
-                        <a class="btn btn-outline-secondary dropdown-toggle" href="#" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="{{ Auth::user()->photo ? asset('storage/' . Auth::user()->photo) : 'https://ui-avatars.com/api/?name=' . Auth::user()->name . '&background=random' }}"
-                                 alt="Foto Profil"
-                                 class="rounded-circle me-2"
-                                 width="32" height="32">
-                            {{ Auth::user()->name }}
-                        </a>
-
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text">Role: {{ Auth::user()->role }}</span></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                            <li>
-                                <a href="{{ route('profile.edit') }}" class="dropdown-item">
-                                     Edit Profil
-                                </a>
-
-                                <a href="{{ route('users.index') }}" class="dropdown-item">
-                                    Kelola Role
-                                </a>
-                            </li>
-
-                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="bi bi-box-arrow-right"></i> Logout
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-        @endif
-
-        {{-- Card Menu --}}
-        <div class="row">
-            {{-- Daftar Buku --}}
-            <div class="col-lg-4 col-md-6 col-12">
-                <div class="small-box bg-primary">
-                    <div class="inner">
-                        <h4>Lihat Daftar Buku</h4>
-                        <p>Semua koleksi buku tersedia</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-book"></i>
-                    </div>
-                    <a href="{{ route('bukus.index') }}" class="small-box-footer">
-                        Lihat <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-
-            {{-- Rak --}}
-            <div class="col-lg-4 col-md-6 col-12">
-                <div class="small-box bg-success">
-                    <div class="inner">
-                        <h4>Rak</h4>
-                        <p>Daftar rak penyimpanan buku</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-archive"></i>
-                    </div>
-                    <a href="{{ route('raks.index') }}" class="small-box-footer">
-                        Lihat <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-
-            {{-- Lokasi Rak --}}
-            <div class="col-lg-4 col-md-6 col-12">
-                <div class="small-box bg-danger">
-                    <div class="inner">
-                        <h4>Lokasi Rak</h4>
-                        <p>Lokasi tiap rak buku</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </div>
-                    <a href="{{ route('lokasi_raks.index') }}" class="small-box-footer">
-                        Lihat <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-
-            {{-- Penerbit --}}
-            <div class="col-lg-4 col-md-6 col-12">
-                <div class="small-box bg-warning text-white">
-                    <div class="inner">
-                        <h4>Penerbit</h4>
-                        <p>Daftar penerbit buku</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-building"></i>
-                    </div>
-                    <a href="{{ route('penerbits.index') }}" class="small-box-footer text-white">
-                        Lihat <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-
-            {{-- Kategori --}}
-            <div class="col-lg-4 col-md-6 col-12">
-                <div class="small-box bg-info">
-                    <div class="inner">
-                        <h4>Kategori</h4>
-                        <p>Kategori utama koleksi buku</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-tags"></i>
-                    </div>
-                    <a href="{{ route('kategoris.index') }}" class="small-box-footer">
-                        Lihat <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-
-            {{-- Sub Kategori --}}
-            <div class="col-lg-4 col-md-6 col-12">
-                <div class="small-box bg-secondary">
-                    <div class="inner">
-                        <h4>Sub Kategori</h4>
-                        <p>Detail sub kategori buku</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-list"></i>
-                    </div>
-                    <a href="{{ route('sub_kategoris.index') }}" class="small-box-footer">
-                        Lihat <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        {{-- About Section --}}
-        <div class="about-section mt-5 p-4 rounded shadow-sm">
-            <h4 class="fw-bold">Tentang Kami </h4>
-            <p class="text-muted">
-                Perpus Mbolali adalah aplikasi perpustakaan digital yang dibuat untuk memudahkan siapa saja dalam mencari, melihat, dan mengenal koleksi buku.
-                Dengan tampilan yang simpel dan mudah dipakai, aplikasi ini diharapkan bisa bikin baca buku jadi lebih seru dan nggak ribet.
-            </p>
-        </div>
-    </div>
-
-    {{-- Custom CSS --}}
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #f4f6f9; /* abu muda, lembut */
-            color: #333;
+            background: #f5f7fa;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #2d3748;
         }
 
-        .navbar {
-            background-color: #ffffff !important;
-            border-bottom: 1px solid #ddd;
+        .top-header {
+            background: #ffffff;
+            padding: 16px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        .card.dashboard-card {
-            background-color: #ffffff;
-            color: #333;
-            border: none;
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .library-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+            color: #2d3748;
+        }
+
+        .library-title i {
+            color: #4a5568;
+        }
+
+        .header-clock {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+
+        .header-clock-time {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .header-clock-date {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-outline-custom {
+            border: 1px solid #cbd5e0;
+            color: #4a5568;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            background: #ffffff;
+        }
+
+        .btn-outline-custom:hover {
+            background: #f7fafc;
+            border-color: #4a5568;
+            color: #2d3748;
+        }
+
+        .profile-photo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+            object-fit: cover;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+        }
+
+        .profile-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #2d3748;
+        }
+
+        .profile-role {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .content-wrapper {
+            padding: 32px 0;
+        }
+
+        .welcome-section {
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: all 0.3s ease-in-out;
+            padding: 32px;
+            margin: 24px 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
         }
 
-        .card.dashboard-card:hover {
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        .welcome-section h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 8px;
         }
 
-        .about-section {
-            background-color: #ffffff;
-            color: #333;
+        .welcome-section p {
+            font-size: 15px;
+            color: #718096;
+            margin: 0;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 32px 0;
+        }
+
+        .menu-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            border-color: #cbd5e0;
+        }
+
+        .menu-icon {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            transition: all 0.2s ease;
+        }
+
+        .menu-card:hover .menu-icon {
+            transform: scale(1.05);
+        }
+
+        .menu-card.blue .menu-icon {
+            background: #ebf8ff;
+            color: #3182ce;
+        }
+
+        .menu-card.green .menu-icon {
+            background: #f0fff4;
+            color: #38a169;
+        }
+
+        .menu-card.orange .menu-icon {
+            background: #fffaf0;
+            color: #dd6b20;
+        }
+
+        .menu-card.purple .menu-icon {
+            background: #faf5ff;
+            color: #805ad5;
+        }
+
+        .menu-card.red .menu-icon {
+            background: #fff5f5;
+            color: #e53e3e;
+        }
+
+        .menu-card.teal .menu-icon {
+            background: #e6fffa;
+            color: #319795;
+        }
+
+        .menu-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .menu-description {
+            font-size: 13px;
+            color: #718096;
+            line-height: 1.4;
+        }
+
+        .menu-content {
+            flex: 1;
+        }
+
+        .about-card {
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            margin: 32px 0;
         }
 
-        /* Biar semua small-box teksnya putih */
-        .small-box,
-        .small-box .inner,
-        .small-box .icon,
-        .small-box .small-box-footer {
-            color: #fff !important;
+        .about-card h5 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 16px;
         }
 
-        /* Hover efek untuk semua small-box */
-        .small-box {
-            transition: all 0.3s ease-in-out;
-            border-radius: 12px; /* biar halus */
+        .about-card p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #4a5568;
+            margin-bottom: 12px;
         }
 
-        .small-box:hover {
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            filter: brightness(1.1); /* warna jadi lebih terang saat hover */
+        .about-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        .profile-dropdown {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+        }
+
+        .profile-dropdown .dropdown-item {
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin: 4px 0;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .profile-dropdown .dropdown-item:hover {
+            background: #f7fafc;
+        }
+
+        .profile-dropdown .dropdown-item.text-danger:hover {
+            background: #fff5f5;
+        }
+
+        .btn-profile {
+            background: #ffffff;
+            border: 1px solid #cbd5e0;
+            color: #4a5568;
+            font-weight: 500;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-profile:hover {
+            background: #f7fafc;
+            border-color: #4a5568;
+            color: #2d3748;
+        }
+
+        @media (max-width: 768px) {
+            .library-title {
+                font-size: 18px;
+            }
+
+            .header-clock {
+                display: none;
+            }
+
+            .welcome-section {
+                padding: 24px 20px;
+            }
+
+            .welcome-section h2 {
+                font-size: 22px;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .menu-content {
+                text-align: center;
+            }
+
+            .btn-outline-custom span {
+                display: none;
+            }
+
+            .btn-outline-custom {
+                padding: 8px 12px;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
         }
     </style>
-@endsection
+</head>
+<body>
 
+<div class="top-header">
+    <div class="container">
+        <div class="header-content">
+            <h1 class="library-title">
+                <i class="fas fa-book-open me-2"></i>
+                Bimantara Pustaka
+            </h1>
 
+            <div class="header-clock">
+                <div class="header-clock-time" id="header-time">00:00:00</div>
+                <div class="header-clock-date" id="header-date">Loading...</div>
+            </div>
+
+            <div class="profile-section">
+                <a href="{{ route('users.index') }}" class="btn btn-outline-custom">
+                    <i class="fa fa-users-cog me-1"></i>
+                    <span>Kelola User</span>
+                </a>
+                @if(Auth::user()->photo)
+                    <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Profile" class="profile-photo">
+                @else
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=4a5568&color=fff&size=40" alt="Profile" class="profile-photo">
+                @endif
+                <div class="profile-info">
+                    <div class="profile-name">{{ Auth::user()->name ?? 'Administrator' }}</div>
+                    <div class="profile-role">{{ Auth::user()->role ?? 'Admin' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="content-wrapper">
+    <div class="container">
+        <div class="welcome-section fade-in">
+            <h2>Selamat Datang, {{ Auth::user()->name ?? 'User' }}!</h2>
+            <p>Kelola perpustakaan digital dengan mudah, cepat, dan terorganisir</p>
+        </div>
+
+        <div class="menu-grid">
+            <a href="{{ route('books.index') }}" class="menu-card blue fade-in">
+                <div class="menu-icon"><i class="fa fa-book"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Buku</div>
+                    <div class="menu-description">Kelola koleksi buku perpustakaan</div>
+                </div>
+            </a>
+
+            <a href="{{ route('racks.index') }}" class="menu-card green fade-in">
+                <div class="menu-icon"><i class="fa fa-archive"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Rak</div>
+                    <div class="menu-description">Daftar rak penyimpanan buku</div>
+                </div>
+            </a>
+
+            <a href="{{ route('rackslocation.index') }}" class="menu-card orange fade-in">
+                <div class="menu-icon"><i class="fa fa-map-marker-alt"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Lokasi Rak</div>
+                    <div class="menu-description">Lokasi tiap rak buku</div>
+                </div>
+            </a>
+
+            <a href="{{ route('publisher.index') }}" class="menu-card purple fade-in">
+                <div class="menu-icon"><i class="fa fa-building"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Penerbit</div>
+                    <div class="menu-description">Manajemen penerbit</div>
+                </div>
+            </a>
+
+            <a href="{{ route('categories.index') }}" class="menu-card red fade-in">
+                <div class="menu-icon"><i class="fa fa-folder"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Kategori</div>
+                    <div class="menu-description">Atur kategori buku</div>
+                </div>
+            </a>
+
+            <a href="{{ route('subcategories.index') }}" class="menu-card teal fade-in">
+                <div class="menu-icon"><i class="fa fa-layer-group"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Subkategori</div>
+                    <div class="menu-description">Kelola sub kategori</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="about-card fade-in">
+            <h5><i class="fa fa-info-circle me-2"></i> Tentang Kami</h5>
+            <p>
+                Bimantara Pustaka adalah sistem perpustakaan digital modern yang memudahkan pengelolaan buku,
+                kategori, subkategori, penerbit, hingga manajemen pengguna.
+            </p>
+            <p>
+                Dengan teknologi terkini, kami berkomitmen untuk menciptakan akses literasi yang mudah, cepat,
+                dan terorganisir bagi semua kalangan.
+            </p>
+        </div>
+
+        <div class="text-center mb-5 fade-in">
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-profile dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fa fa-user me-2"></i>{{ Auth::user()->name ?? 'Profile' }}
+                </button>
+                <ul class="dropdown-menu profile-dropdown">
+                    <li>
+                        <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                            <i class="fa fa-user-edit me-2"></i> Edit Profil
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="fa fa-sign-out-alt me-2"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function updateClock() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('header-time').textContent = `${hours}:${minutes}:${seconds}`;
+
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const dateString = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+        document.getElementById('header-date').textContent = dateString;
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

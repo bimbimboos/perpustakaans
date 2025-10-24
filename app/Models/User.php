@@ -20,11 +20,8 @@ protected $primaryKey='id_user';
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-        'photo',
+        'name','email','password','role','status','no_telp','alamat',
+        'ktp_number_enc','ktp_hash','ktp_photo_path','photo_path'
     ];
 
     /**
@@ -33,8 +30,7 @@ protected $primaryKey='id_user';
      * @var list<string>
      */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password','remember_token','ktp_number_enc'
     ];
 
     /**
@@ -49,13 +45,24 @@ protected $primaryKey='id_user';
             'password' => 'hashed',
         ];
     }
-
-    public function penataan_bukus()
+    public function getKtpNumberAttribute()
     {
-        return $this->hasMany(penataan_bukus::class, 'id_penataan');
+        if ($this->ktp_number_enc) {
+            try {
+                return decrypt($this->ktp_number_enc);
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return null;
     }
 
-    public function peminjaman()
+    public function sortbooks()
+    {
+        return $this->hasMany(sortbooks::class, 'id_penataan');
+    }
+
+    public function borrowing()
     {
         return $this->hasMany(peminjaman::class, 'id_user');
     }

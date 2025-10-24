@@ -2,31 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\bukus;
-use App\Models\buku_items;
-use App\Models\raks;
+use App\Models\Books;
+use App\Models\Bookitems;
+use App\Models\Racks;
 use Illuminate\Http\Request;
 
 class BukuItemsController extends Controller
 {
-    public function index($buku)
+    public function index($book)
     {
-        $buku = bukus::with('items')->findOrFail($buku);
+        $book = books::with('Bookitems')->findOrFail($book);
         // Ambil items per buku dengan paginate
-        $items = $buku->items()
+        $items = $book->bookitems()
             ->orderBy('id_item', 'asc')
             ->paginate(10)
             ->withQueryString();
-        $raks = raks::all();
+        $racks = racks::all();
 
-        return view('buku_items.index', compact('buku','items','raks'));
+        return view('bookitems.index', compact('book','items','racks'));
     }
 
-    public function create($buku)
+    public function create($book)
     {
-        $buku = bukus::findOrFail($buku);
-        $raks = raks::all();
-        return view('bukus.items.create', compact('buku','raks'));
+        $book = books::findOrFail($book);
+        $rack = racks::all();
+        return view('books.items.create', compact('book','rack'));
     }
 
     public function store(Request $request, $id_buku)
@@ -35,66 +35,66 @@ class BukuItemsController extends Controller
             'kondisi' => 'required|in:baik,rusak,hilang',
             'status' => 'required|in:tersedia,dipinjam,hilang',
             'sumber' => 'nullable|string|max:255',
-            'id_rak' => 'required|exists:raks,id_rak',
+            'id_rak' => 'required|exists:racks,id_rak',
         ]);
-        buku_items::create([
+        Bookitems::create([
             'id_buku'   => $id_buku,
             'id_rak'    => $request->id_rak,
             'kondisi'   => $request->kondisi,
             'status'    => $request->status,
             'sumber'    => $request->sumber]);
 
-        return redirect()->route('bukus.items.index', $id_buku)
+        return redirect()->route('books.items.index', $id_buku)
             ->with('success', 'Item buku berhasil ditambahkan.');
     }
 
 
 
-    public function show($buku, $item)
+    public function show($book, $item)
     {
-        $buku = bukus::findOrFail($buku);
-        $item = buku_items::where('id_buku', $buku->id_buku)
+        $book = books::findOrFail($book);
+        $item = Bookitems::where('id_buku', $book->id_buku)
             ->where('id_item', $item)
             ->firstOrFail();
 
-        return view('bukus.items.show', compact('buku','item'));
+        return view('books.items.show', compact('book','item'));
     }
 
-    public function edit($buku, $item)
+    public function edit($book, $item)
     {
-        $buku = bukus::findOrFail($buku);
-        $item = buku_items::where('id_buku', $buku->id_buku)->findOrFail($item);
+        $book = books::findOrFail($book);
+        $item = Bookitems::where('id_buku', $book->id_buku)->findOrFail($item);
 
-        return view('bukus.items.edit', compact('buku','item'));
+        return view('books.items.edit', compact('book','item'));
     }
 
-    public function update(Request $request, $buku, $id_item)
+    public function update(Request $request, $book, $id_item)
     {
         $data = $request->validate([
             'kondisi' => 'required|in:baik,rusak,hilang',
             'status' => 'required|in:tersedia,dipinjam,hilang',
             'sumber' => 'nullable|string|max:255',
-            'id_rak' => 'required|exists:raks,id_rak',
+            'id_rak' => 'required|exists:racks,id_rak',
         ]);
-        $item = \App\Models\buku_items::findOrFail($id_item);
+        $item = \App\Models\Bookitems::findOrFail($id_item);
         $item->update($data);
 
-        return redirect()->route('bukus.items.index', $item->id_buku)
+        return redirect()->route('books.items.index', $item->id_buku)
             ->with('success', 'Item buku berhasil diperbarui.');
     }
 
-    public function destroy($buku, $item)
+    public function destroy($book, $item)
     {
-        $item = buku_items::where('id_buku', $buku)->findOrFail($item);
+        $item = Bookitems::where('id_buku', $book)->findOrFail($item);
         $item->delete();
 
-        return redirect()->route('bukus.items.index', $buku)
+        return redirect()->route('books.items.index', $book)
             ->with('success', 'Item berhasil dihapus');
     }
 
     public function allItems(Request $request)
     {
-        $query = \App\Models\buku_items::with(['bukus', 'raks']);
+        $query = \App\Models\Bookitems::with(['books', 'racks']);
 
         // Kalau ada id_buku di query string, filter berdasarkan itu
         if ($request->has('id_buku')) {
@@ -103,7 +103,7 @@ class BukuItemsController extends Controller
 
         $items = $query->get();
 
-        return view('buku_items.all', compact('items'));
+        return view('books.all', compact('items'));
     }
     public function pinjam(Request $request, $id)
     {
@@ -116,13 +116,13 @@ class BukuItemsController extends Controller
             'pengembalian' => 'required|date|after:today'
         ]);
 
-        $item = buku_items::findOrFail($id);
+        $item = Bookitems::findOrFail($id);
         if ($item->status !== 'tersedia') {
             return response()->json(['success'=>false,'message'=>'Item tidak tersedia untuk dipinjam.']);
         }
 
-        // buat record peminjaman baru (status pending)
-        \App\Models\Peminjaman::create([
+        // buat record borrowing baru (status pending)
+        \App\Models\Borrowing::create([
             'id_user' => $user->id_user,
             'id_item' => $item->id_item,
             'id_buku' => $item->id_buku,
@@ -132,7 +132,7 @@ class BukuItemsController extends Controller
             'alamat' => $request->alamat,
         ]);
 
-        return response()->json(['success'=>true,'message'=>'Permintaan peminjaman dikirim, menunggu persetujuan admin/petugas.']);
+        return response()->json(['success'=>true,'message'=>'Permintaan borrowing dikirim, menunggu persetujuan admin/petugas.']);
     }
 
 

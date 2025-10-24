@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\sub_kategoris;
+use App\Models\subcategories;
 use Illuminate\Http\Request;
 
 class SubKategorisController extends Controller
@@ -13,16 +13,16 @@ class SubKategorisController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
-        $sub_kategoris=sub_kategoris::when($search, function ($query, $search){
-            $query->where('id_sub', 'like', "%{$search}%")
-                ->orWhere('nama_sub_kategori', 'like', "%{$search}%");
+        $subcategories=subcategories::when($search, function ($query, $search){
+            $query->where('id_subkategori', 'like', "%{$search}%")
+                ->orWhere('nama_subkategori', 'like', "%{$search}%");
         })
 
 
-            ->orderBy('id_sub', 'asc') // untuk pagination
+            ->orderBy('id_subkategori', 'asc') // untuk pagination
             ->paginate(10)
             ->withQueryString();
-        return view('sub_kategoris.index',compact('sub_kategoris'));
+        return view('subcategories.index',compact('subcategories'));
     }
 
     /**
@@ -30,7 +30,7 @@ class SubKategorisController extends Controller
      */
     public function create()
     {
-        return view('sub_kategoris.create');
+        return view('subcategories.create');
     }
 
     /**
@@ -39,12 +39,12 @@ class SubKategorisController extends Controller
     public function store(Request $request)
     {
         $data=$request->validate([
-            'nama_sub_kategori'=>'required|string|max:50',
+            'nama_subkategori'=>'required|string|max:50',
         ]);
 
-        sub_kategoris::create($data);
-        return redirect()->route('sub_kategoris.index')
-            ->with('success','sub kategoris berhasil di tambahkan');
+        subcategories::create($data);
+        return redirect()->route('subcategories.index')
+            ->with('success','sub categories berhasil di tambahkan');
     }
 
     /**
@@ -58,32 +58,32 @@ class SubKategorisController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(sub_kategoris $sub_kategori)
+    public function edit(subcategories $subcategories)
     {
-        return view('sub_kategoris.edit',compact('sub_kategori'));
+        return view('subcategories.edit',compact('subcategories'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, sub_kategoris $sub_kategori)
+    public function update(Request $request, subcategories $subcategories)
     {
         $data = $request->validate([
-            'nama_sub_kategori'=>'required|string|max:50'
+            'nama_subkategori'=>'required|string|max:50'
         ]);
-        $sub_kategori->update($data);
-        return redirect()->route('sub_kategoris.index')
-            ->with('success','sub_kategoris berhasil diperbarui');
+        $subcategories->update($data);
+        return redirect()->route('subcategories.index')
+            ->with('success','subcategories berhasil diperbarui');
     }
 
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(sub_kategoris $sub_kategori)
+    public function destroy(subcategories $subcategories)
     {
-        $sub_kategori->delete();
-        return redirect()->route('sub_kategoris.index')
-            ->with('success','sub_kategori berhasil dihapus');
+        $subcategories->delete();
+        return redirect()->route('subcategories.index')
+            ->with('success','subcategories berhasil dihapus');
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\kategoris;
+use App\Models\categories;
 use Illuminate\Http\Request;
 
 class KategorisController extends Controller
@@ -13,7 +13,7 @@ class KategorisController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
-        $kategoris=kategoris::when($search, function ($query, $search) {
+        $categories=categories::when($search, function ($query, $search) {
             $query->where('id_kategori', 'like', "%{$search}%")
                 ->orWhere('nama_kategori', 'like', "%{$search}%");
         })
@@ -21,7 +21,7 @@ class KategorisController extends Controller
             ->orderBy('id_kategori', 'asc') // untuk pagination
             ->paginate(10)
             ->withQueryString();
-        return view('kategoris.index', compact('kategoris'));
+        return view('categories.index', compact('categories'));
 
     }
 
@@ -30,7 +30,7 @@ class KategorisController extends Controller
      */
     public function create()
     {
-        return view('kategoris.create');
+        return view('categories.create');
     }
 
     /**
@@ -42,9 +42,9 @@ class KategorisController extends Controller
             'nama_kategori'=>'required|string|max:50',
         ]);
 
-        kategoris::create($data);
-        return redirect()->route('kategoris.index')
-            ->with('success','kategoris berhasil di tambahkan');
+        categories::create($data);
+        return redirect()->route('categories.index')
+            ->with('success','categories berhasil di tambahkan');
     }
 
     /**
@@ -58,31 +58,31 @@ class KategorisController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(kategoris $kategori)
+    public function edit(categories $categories)
     {
-        return view('kategoris.edit',compact('kategori'));
+        return view('categories.edit',compact('categories'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, kategoris $kategori)
+    public function update(Request $request, categories $categories)
     {
         $data = $request->validate([
             'nama_kategori'=>'required|string|max:50'
         ]);
-        $kategori->update($data);
-        return redirect()->route('kategoris.index')
-            ->with('success','kategoris berhasil diperbarui');
+        $categories->update($data);
+        return redirect()->route('categories.index')
+            ->with('success','categories berhasil diperbarui');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(kategoris $kategori)
+    public function destroy(categories $categories)
     {
-        $kategori->delete();
-        return redirect()->route('kategoris.index')
+        $categories->delete();
+        return redirect()->route('categories.index')
             ->with('success','kategori berhasil dihapus');
     }
 }

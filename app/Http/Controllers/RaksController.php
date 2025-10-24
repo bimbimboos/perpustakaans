@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\raks;
+use App\Models\racks;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use App\Models\bukus;
+use App\Models\books;
 
 class RaksController extends Controller
 {
@@ -16,21 +16,21 @@ class RaksController extends Controller
     {
         $search = $request->input('search');
 
-        $raks = raks::when($search, function ($query, $search) {
+        $racks = racks::when($search, function ($query, $search) {
             $query->where('id_rak', 'like', "%{$search}%")
                 ->orWhere('nama', 'like', "%{$search}%")
                 ->orWhere('id_lokasi', 'like', "%{$search}%")
-                ->orWhereHas('kategoris', function ($q) use ($search) {
+                ->orWhereHas('categories', function ($q) use ($search) {
                     $q->where('nama_kategori', 'like', "%{$search}%");
                 });
         })
-            ->with('lokasi_raks', 'kategoris')  // Load relasi untuk view
-            ->withSum('penataan_bukus', 'jumlah')      // Hitung relasi untuk tampilan kapasitas
+            ->with('rackslocation', 'categories')  // Load relasi untuk view
+            ->withSum('sortbooks', 'jumlah')      // Hitung relasi untuk tampilan kapasitas
             ->orderBy('id_rak', 'asc') // untuk pagination
             ->paginate(10)
             ->withQueryString();
 
-            return view('raks.index',compact('raks'));
+            return view('racks.index',compact('racks'));
     }
 
     /**
@@ -38,7 +38,7 @@ class RaksController extends Controller
      */
     public function create()
     {
-        return view('raks.create');
+        return view('racks.create');
     }
 
     /**
@@ -56,9 +56,9 @@ class RaksController extends Controller
             'id_kategori' => 'nullable|integer',
         ]);
 
-        raks::create($data);
+        racks::create($data);
 
-        return redirect()->route('raks.index')->with('success', 'Rak berhasil ditambahkan.');
+        return redirect()->route('rackscks.index')->with('success', 'Rak berhasil ditambahkan.');
     }
 
     /**
@@ -68,48 +68,48 @@ class RaksController extends Controller
     public function show($id_rak, Request $request)
     {
         // Ambil data rak (dengan relasi lokasi)
-        $rak = raks::with(['lokasi_raks'])->findOrFail($id_rak);
+        $rack = racks::with(['rackslocation'])->findOrFail($id_rak);
 
         // Ambil parameter dari URL
-        $kategori = $request->query('kategori'); // ?kategori=...
+        $kategori = $request->query('category'); // ?kategori=...
         $search   = $request->query('search');   // ?search=...
 
         // Query buku yang punya penataan di rak ini (dasar)
-        $bukuQuery = bukus::query()
+        $bookQuery = books::query()
             // eager load penataan yang hanya untuk rak ini,
             // supaya nanti bisa hitung total jumlah tanpa N+1 queries
-            ->with(['penataan_bukus' => function($q) use ($id_rak) {
+            ->with(['sortbooks' => function($q) use ($id_rak) {
                 $q->where('id_rak', $id_rak);
             }])
             // pastikan buku memang ada penataan di rak ini
-            ->whereHas('penataan_bukus', function($q) use ($id_rak) {
+            ->whereHas('sortbooks', function($q) use ($id_rak) {
                 $q->where('id_rak', $id_rak);
             });
 
         // Jika ada parameter kategori, batasi juga ke kategori itu
         if ($kategori) {
-            $bukuQuery->where('id_kategori', $kategori);
+            $bookQuery->where('id_kategori', $kategori);
         }
 
         // Jika ada pencarian judul
         if ($search) {
-            $bukuQuery->where('judul', 'like', "%{$search}%");
+            $bookQuery->where('judul', 'like', "%{$search}%");
         }
 
         // Pagination (ubah angka 10 sesuai kebutuhan)
-        $paginator = $bukuQuery->orderBy('judul')->paginate(10)->withQueryString();
+        $paginator = $bookQuery->orderBy('judul')->paginate(10)->withQueryString();
 
-        // Mapping: ubah collection jadi item yg berisi 'buku' + 'total_jumlah'
-        $mapped = $paginator->getCollection()->map(function($buku) {
+        // Mapping: ubah collection jadi item yg berisi 'book' + 'total_jumlah'
+        $mapped = $paginator->getCollection()->map(function($book) {
             return (object)[
-                'buku' => $buku,
+                'book' => $book,
                 // total jumlah penataan di rak (karena kita eager load, ini tidak n+1)
-                'total_jumlah' => $buku->penataan_bukus->sum('jumlah')
+                'total_jumlah' => $book->sortbooks->sum('jumlah')
             ];
         });
 
         // Buat kembali LengthAwarePaginator supaya links() tetap bekerja
-        $bukusInRak = new LengthAwarePaginator(
+        $booksInRak = new LengthAwarePaginator(
             $mapped,
             $paginator->total(),
             $paginator->perPage(),
@@ -121,7 +121,7 @@ class RaksController extends Controller
         );
 
         // Kirim ke view dengan nama variabel 'bukusInRak' (konsisten, lowercase)
-        return view('raks.show', compact('rak', 'bukusInRak'));
+        return view('racks.show', compact('rack', 'booksInRak'));
     }
 
 
@@ -131,10 +131,10 @@ class RaksController extends Controller
      */
     public function edit( $id_rak)
     {
-        $lokasi_raks = \App\Models\lokasi_raks::all();
-        $kategoris = \App\Models\kategoris::all();
-        $rak= raks::findOrFail($id_rak);
-        return view ('raks.edit',compact('rak'));
+        $rackslocation = \App\Models\rackslocation::all();
+        $categories = \App\Models\categories::all();
+        $rack= racks::findOrFail($id_rak);
+        return view ('racks.edit',compact('rack'));
 
     }
 
@@ -143,7 +143,7 @@ class RaksController extends Controller
      */
     public function update(Request $request, $id_rak)
     {
-        $rak = raks::findOrFail($id_rak);
+        $rack = racks::findOrFail($id_rak);
 
         $data = $request->validate([
             'barcode' => 'nullable|string|max:100',
@@ -155,9 +155,9 @@ class RaksController extends Controller
             'id_kategori' => 'nullable|integer',
         ]);
 
-        $rak->update($data);
+        $rack->update($data);
 
-        return redirect()->route('raks.index')->with('success', 'Rak berhasil diperbarui.');
+        return redirect()->route('racks.index')->with('success', 'Rak berhasil diperbarui.');
     }
 
     /**
@@ -165,9 +165,9 @@ class RaksController extends Controller
      */
     public function destroy( $id_rak)
     {
-        $rak = raks::findOrFail($id_rak);
-        $rak->delete();
+        $rack = racks::findOrFail($id_rak);
+        $rack->delete();
 
-        return redirect()->route('raks.index')->with('success', 'Rak berhasil dihapus.');
+        return redirect()->route('racks.index')->with('success', 'Rak berhasil dihapus.');
     }
 }
