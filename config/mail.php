@@ -113,6 +113,8 @@ return [
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
+        // Tambahkan di array config
+        'admin_email' => env('MAIL_ADMIN_EMAIL', 'admin@perpustakaan.com'),
     ],
 
 ];

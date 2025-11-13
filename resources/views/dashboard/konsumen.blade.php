@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+@php
+    $member = \App\Models\Members::where('id_user', Auth::id())->first();
+@endphp
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,7 +14,7 @@
         :root {
             --bg-color: #f5f7fa;
             --card-bg: #ffffff;
-            --text-color: #2d3748;
+            --text-colox`: #2d3748;
             --subtext-color: #718096;
             --border-color: #e2e8f0;
             --shadow-light: rgba(0, 0, 0, 0.06);
@@ -90,23 +93,6 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-        }
-
-        .btn-outline-custom {
-            border: 1px solid var(--border-color);
-            color: var(--subtext-color);
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            transition: all var(--transition-time);
-            font-size: 0.875rem;
-            background: var(--card-bg);
-        }
-
-        .btn-outline-custom:hover {
-            background: #f7fafc;
-            border-color: var(--subtext-color);
-            color: var(--text-color);
         }
 
         .profile-photo {
@@ -245,31 +231,65 @@
             line-height: 1.5;
         }
 
-        .about-card {
-            background: var(--card-bg);
+        .alert {
             border-radius: 0.75rem;
-            padding: 2rem;
+            border: none;
             box-shadow: 0 1px 3px var(--shadow-medium);
-            border: 1px solid var(--border-color);
-            margin: 2rem 0;
+            margin-bottom: 1.5rem;
         }
 
-        .about-card h5 {
-            font-size: 1.25rem;
-            font-weight: 700;
+        .alert-success {
+            background: #f0fff4;
+            color: #22543d;
+            border-left: 4px solid #38a169;
+        }
+
+        .alert-warning {
+            background: #fffaf0;
+            color: #744210;
+            border-left: 4px solid #dd6b20;
+        }
+
+        .alert-info {
+            background: #ebf8ff;
+            color: #2c5282;
+            border-left: 4px solid #3182ce;
+        }
+
+        .alert-danger {
+            background: #fff5f5;
+            color: #742a2a;
+            border-left: 4px solid #e53e3e;
+        }
+
+        .verification-code-box {
+            margin-top: 1rem;
+            padding: 1.25rem;
+            background: #ffffff;
+            border-radius: 0.5rem;
+            border: 2px dashed #38a169;
+        }
+
+        .verification-code-box strong {
+            display: block;
+            margin-bottom: 0.5rem;
             color: var(--text-color);
-            margin-bottom: 1rem;
         }
 
-        .about-card p {
-            font-size: var(--font-small);
-            line-height: 1.7;
+        .verification-code-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #38a169;
+            letter-spacing: 0.5rem;
+            text-align: center;
+            margin: 0.75rem 0;
+        }
+
+        .verification-code-box small {
+            display: block;
+            text-align: center;
             color: var(--subtext-color);
-            margin-bottom: 0.75rem;
-        }
-
-        .about-card p:last-child {
-            margin-bottom: 0;
+            margin-top: 0.5rem;
         }
 
         .profile-dropdown {
@@ -333,14 +353,6 @@
             .menu-grid {
                 grid-template-columns: 1fr;
             }
-
-            .btn-outline-custom span {
-                display: none;
-            }
-
-            .btn-outline-custom {
-                padding: 0.5rem 0.75rem;
-            }
         }
 
         @keyframes fadeIn {
@@ -382,7 +394,7 @@
                 @endif
                 <div class="profile-info">
                     <div class="profile-name">{{ Auth::user()->name ?? 'User' }}</div>
-                    <div class="profile-role">{{ Auth::user()->role ?? 'Konsumen' }}</div>
+                    <div class="profile-role">{{ ucfirst(Auth::user()->role ?? 'Konsumen') }}</div>
                 </div>
             </div>
         </div>
@@ -396,47 +408,139 @@
             <p>Kelola perpustakaan digital dengan mudah, cepat, dan terorganisir</p>
         </div>
 
+        {{-- SUCCESS MESSAGE --}}
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show fade-in" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>{{ session('success') }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show fade-in" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if(session('info'))
+            <div class="alert alert-info alert-dismissible fade show fade-in" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                {{ session('info') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        {{-- ✅ MEMBER STATUS CHECK (DENGAN NULL SAFETY) --}}
+        @if(!isset($member) || is_null($member))
+            <div class="alert alert-warning fade-in" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Anda Belum Terdaftar Sebagai Member
+                </h5>
+                <p class="mb-3">Daftar sebagai member untuk dapat meminjam buku di perpustakaan.</p>
+                <a href="{{ route('members.create') }}" class="btn btn-warning">
+                    <i class="fas fa-user-plus me-2"></i> Daftar Member Sekarang
+                </a>
+            </div>
+        @elseif($member->status === 'pending')
+            <div class="alert alert-warning fade-in" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-clock me-2"></i>
+                    Data Member Anda Sedang Diproses
+                </h5>
+                <p class="mb-0">Admin sedang memverifikasi data Anda. Kami akan mengirim email setelah proses verifikasi selesai.</p>
+                <hr>
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Biasanya proses verifikasi memakan waktu 1x24 jam.
+                </small>
+            </div>
+        @elseif($member->status === 'verified' || $member->status === 'active')
+            <div class="alert alert-success fade-in" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Member Terverifikasi ✅
+                </h5>
+                <p class="mb-2">Selamat! Akun member Anda sudah diverifikasi dan dapat digunakan untuk meminjam buku.</p>
+                @if(isset($member->verification_code) && $member->verification_code)
+                    <div class="verification-code-box">
+                        <strong>Kode Verifikasi Anda:</strong>
+                        <div class="verification-code-display">
+                            {{ $member->verification_code }}
+                        </div>
+                        <small class="text-muted">Simpan kode ini untuk keperluan peminjaman buku</small>
+                    </div>
+                @endif
+            </div>
+        @elseif($member->status === 'rejected')
+            <div class="alert alert-danger fade-in" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Pendaftaran Ditolak
+                </h5>
+                <p class="mb-0">Mohon maaf, pendaftaran Anda ditolak oleh admin. Silakan hubungi perpustakaan untuk informasi lebih lanjut.</p>
+            </div>
+        @elseif(in_array($member->status, ['inactive', 'suspended']))
+            <div class="alert alert-danger fade-in" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-ban me-2"></i>
+                    Akun Member Tidak Aktif
+                </h5>
+                <p class="mb-0">Akun member Anda sedang tidak aktif. Hubungi admin untuk informasi lebih lanjut.</p>
+            </div>
+        @endif
+
         <div class="menu-grid">
             <a href="{{ route('books.index') }}" class="menu-card blue fade-in">
                 <div class="menu-icon"><i class="fa fa-book"></i></div>
                 <div class="menu-title">Buku</div>
-                <div class="menu-description">Kelola koleksi buku perpustakaan</div>
+                <div class="menu-description">Lihat koleksi buku perpustakaan</div>
+            </a>
+
+            <a href="{{ route('members.index') }}" class="menu-card purple fade-in">
+                <div class="menu-icon"><i class="fa fa-id-card"></i></div>
+                <div class="menu-title">Profil Member</div>
+                <div class="menu-description">Lihat data member Anda</div>
+            </a>
+
+            <a href="{{ route('borrowing.index') }}" class="menu-card orange fade-in">
+                <div class="menu-icon"><i class="fa fa-book-reader"></i></div>
+                <div class="menu-title">Peminjaman</div>
+                <div class="menu-description">Riwayat peminjaman buku</div>
             </a>
 
             <a href="{{ route('racks.index') }}" class="menu-card green fade-in">
                 <div class="menu-icon"><i class="fa fa-archive"></i></div>
-                <div class="menu-title">Rak</div>
+                <div class="menu-title">Rak Buku</div>
                 <div class="menu-description">Daftar rak penyimpanan buku</div>
             </a>
 
-            <a href="{{ route('rackslocation.index') }}" class="menu-card orange fade-in">
+            <a href="{{ route('rackslocation.index') }}" class="menu-card teal fade-in">
                 <div class="menu-icon"><i class="fa fa-map-marker-alt"></i></div>
                 <div class="menu-title">Lokasi Rak</div>
                 <div class="menu-description">Lokasi tiap rak buku</div>
             </a>
 
-            <a href="{{ route('publisher.index') }}" class="menu-card purple fade-in">
+            <a href="{{ route('publisher.index') }}" class="menu-card red fade-in">
                 <div class="menu-icon"><i class="fa fa-building"></i></div>
                 <div class="menu-title">Penerbit</div>
-                <div class="menu-description">Manajemen penerbit</div>
+                <div class="menu-description">Informasi penerbit buku</div>
             </a>
 
-            <a href="{{ route('categories.index') }}" class="menu-card red fade-in">
+            <a href="{{ route('categories.index') }}" class="menu-card blue fade-in">
                 <div class="menu-icon"><i class="fa fa-folder"></i></div>
                 <div class="menu-title">Kategori</div>
-                <div class="menu-description">Atur kategori buku</div>
+                <div class="menu-description">Kategori buku tersedia</div>
             </a>
 
-            <a href="{{ route('subcategories.index') }}" class="menu-card teal fade-in">
+            <a href="{{ route('subcategories.index') }}" class="menu-card green fade-in">
                 <div class="menu-icon"><i class="fa fa-layer-group"></i></div>
                 <div class="menu-title">Subkategori</div>
-                <div class="menu-description">Kelola sub kategori</div>
+                <div class="menu-description">Sub kategori buku</div>
             </a>
-        </div>
-
-        <div class="about-card fade-in">
-            <h5><i class="fa fa-info-circle me-2"></i> Tentang Kami</h5>
-            <p>Bimantara Pustaka adalah sistem perpustakaan digital modern yang memudahkan pengelolaan buku, kategori, subkategori, penerbit, hingga manajemen pengguna.</p>
         </div>
 
         <div class="text-center mb-5 fade-in">
@@ -447,7 +551,7 @@
                 <ul class="dropdown-menu profile-dropdown">
                     <li>
                         <a class="dropdown-item" href="{{ route('profile.edit') }}">
-                            <i class="fa fa-user me-2"></i> Profil Saya
+                            <i class="fa fa-user-edit me-2"></i> Edit Profil
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>
@@ -467,21 +571,35 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Real-time Clock Function
     function updateClock() {
         const now = new Date();
+
+        // Format time (HH:MM:SS)
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
         document.getElementById('header-time').textContent = `${hours}:${minutes}:${seconds}`;
 
+        // Format date (Day, DD Month YYYY)
         const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
         const dateString = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
         document.getElementById('header-date').textContent = dateString;
     }
 
+    // Initialize clock
     updateClock();
     setInterval(updateClock, 1000);
+
+    // Auto-dismiss alerts after 5 seconds
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
 </script>
 </body>
 </html>

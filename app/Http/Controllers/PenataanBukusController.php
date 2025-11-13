@@ -106,7 +106,7 @@ class PenataanBukusController extends Controller
         $totalRequestedRack = $existingSumRack + $request->jumlah;
         if ($totalRequestedRack > $rack->kapasitas) {
             return redirect()->back()
-                ->withErrors(['jumlah' => "Jumlah melebihi kapasitas rak! Sisa: " . ($rack->kapasitas - $existingSumRak) . "."])
+                ->withErrors(['jumlah' => "Jumlah melebihi kapasitas rak! Sisa: " . ($rack->kapasitas - $existingSumRack) . "."])
                 ->withInput();
         }
 
@@ -248,7 +248,7 @@ class PenataanBukusController extends Controller
         $totalRequestedRack = $existingSumRack + $request->jumlah;
         if ($totalRequestedRack > $rack->kapasitas) {
             return redirect()->back()
-                ->withErrors(['jumlah' => "Jumlah melebihi kapasitas rak! Sisa: " . ($rack->kapasitas - $existingSumRak) . "."])
+                ->withErrors(['jumlah' => "Jumlah melebihi kapasitas rak! Sisa: " . ($rack->kapasitas - $existingSumRack) . "."])
                 ->withInput();
         }
 
@@ -274,7 +274,7 @@ class PenataanBukusController extends Controller
 
                 // Pindah items existing ke rak baru
                 Bookitems::where('id_buku', $sortbooks->id_buku)
-                    ->where('id_rak', $oldRakId)
+                    ->where('id_rak', $oldRackId)
                     ->take($oldJumlah) // Asumsi items sesuai jumlah old
                     ->update(['id_rak' => $request->id_rak]);
 

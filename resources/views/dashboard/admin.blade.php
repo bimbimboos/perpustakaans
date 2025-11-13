@@ -211,6 +211,26 @@
             color: #319795;
         }
 
+        .menu-card.indigo .menu-icon {
+            background: #ebf4ff;
+            color: #5a67d8;
+        }
+
+        .menu-card.pink .menu-icon {
+            background: #fff5f7;
+            color: #d53f8c;
+        }
+
+        .menu-card.cyan .menu-icon {
+            background: #e0f7ff;
+            color: #0891b2;
+        }
+
+        .menu-card.yellow .menu-icon {
+            background: #fffbeb;
+            color: #d97706;
+        }
+
         .menu-title {
             font-size: 16px;
             font-weight: 600;
@@ -294,6 +314,39 @@
             background: #f7fafc;
             border-color: #4a5568;
             color: #2d3748;
+        }
+
+        .alert {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #f0fff4;
+            color: #22543d;
+            border-left: 4px solid #38a169;
+        }
+
+        .alert-info {
+            background: #ebf8ff;
+            color: #2c5282;
+            border-left: 4px solid #3182ce;
+        }
+
+        .alert .btn {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+        }
+
+        .alert ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .alert ul li {
+            padding: 0.5rem 0;
         }
 
         @media (max-width: 768px) {
@@ -392,12 +445,60 @@
             <p>Kelola perpustakaan digital dengan mudah, cepat, dan terorganisir</p>
         </div>
 
+        {{-- SUCCESS MESSAGE --}}
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show fade-in" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>{{ session('success') }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        {{-- NOTIFIKASI MEMBER BARU --}}
+        @php
+            $unreadNotifications = auth()->user()->unreadNotifications()->where('type', 'App\Notifications\NewMemberRegistered')->get();
+        @endphp
+
+        @if($unreadNotifications->count() > 0)
+            <div class="alert alert-info alert-dismissible fade show fade-in" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-bell me-2"></i>
+                    Notifikasi Member Baru ({{ $unreadNotifications->count() }})
+                </h5>
+                <hr>
+                <ul class="mb-0">
+                    @foreach($unreadNotifications as $notification)
+                        <li class="mb-2">
+                            {{ $notification->data['message'] ?? 'Member baru menunggu verifikasi' }}
+                            <a href="{{ $notification->data['action_url'] ?? route('members.index') }}" class="btn btn-sm btn-primary ms-2">
+                                <i class="fas fa-check me-1"></i> Verifikasi Sekarang
+                            </a>
+                            <form method="POST" action="{{ route('notifications.mark-read', $notification->id) }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-secondary ms-1">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="menu-grid">
             <a href="{{ route('books.index') }}" class="menu-card blue fade-in">
                 <div class="menu-icon"><i class="fa fa-book"></i></div>
                 <div class="menu-content">
                     <div class="menu-title">Buku</div>
                     <div class="menu-description">Kelola koleksi buku perpustakaan</div>
+                </div>
+            </a>
+
+            <a href="{{ route('members.index') }}" class="menu-card purple fade-in">
+                <div class="menu-icon"><i class="fa fa-users"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Members</div>
+                    <div class="menu-description">Kelola member perpustakaan</div>
                 </div>
             </a>
 
@@ -438,6 +539,23 @@
                 <div class="menu-content">
                     <div class="menu-title">Subkategori</div>
                     <div class="menu-description">Kelola sub kategori</div>
+                </div>
+            </a>
+
+            <a href="{{ route('sortbooks.index') }}" class="menu-card cyan fade-in">
+                <div class="menu-icon"><i class="fa fa-sort-amount-down"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Penataan</div>
+                    <div class="menu-description">Atur penataan buku di rak</div>
+                </div>
+            </a>
+
+            <!-- MENU PEMINJAMAN BARU -->
+            <a href="{{ route('borrowing.index') }}" class="menu-card yellow fade-in">
+                <div class="menu-icon"><i class="fa fa-handshake"></i></div>
+                <div class="menu-content">
+                    <div class="menu-title">Peminjaman</div>
+                    <div class="menu-description">Kelola transaksi peminjaman buku</div>
                 </div>
             </a>
         </div>

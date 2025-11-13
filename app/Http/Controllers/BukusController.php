@@ -17,24 +17,24 @@
         public function index(Request $request)
         {
             $q = books::with(['publisher', 'categories', 'subcategories'])
-            ->withCount(['sortbooks as jumlah_tata' => function ($query) {
-            $query->select(\DB::raw('COALESCE(SUM(jumlah), 0)'));
-        }]);
+                ->withCount(['sortbooks as jumlah_tata' => function ($query) {
+                    $query->select(\DB::raw('COALESCE(SUM(jumlah), 0)'));
+                }]);
 
             if ($s = $request->get('search')) {
-                $q->where(function($x) use ($s) {
+                $q->where(function ($x) use ($s) {
                     $x->where('judul', 'like', "%$s%")
                         ->orWhere('pengarang', 'like', "%$s%")
                         ->orWhere('tahun_terbit', 'like', "%$s%")
                         ->orWhere('isbn', 'like', "%$s%");
                 })
-                    ->orWhereHas('publisher', function($rel) use ($s) {
+                    ->orWhereHas('publisher', function ($rel) use ($s) {
                         $rel->where('nama_penerbit', 'like', "%$s%");
                     })
-                    ->orWhereHas('categories', function($rel) use ($s) {
+                    ->orWhereHas('categories', function ($rel) use ($s) {
                         $rel->where('nama_kategori', 'like', "%$s%");
                     })
-                    ->orWhereHas('subcategories', function($rel) use ($s) {
+                    ->orWhereHas('subcategories', function ($rel) use ($s) {
                         $rel->where('nama_subkategori', 'like', "%$s%");
                     });
             }
@@ -48,29 +48,29 @@
             $categories = categories::all();
             $subcategories = subcategories::all();
 
-            return view('books.index', compact('book','publisher','categories','subcategories'));
+            return view('books.index', compact('book', 'publisher', 'categories', 'subcategories'));
         }
 
 
         /**
          * Show the form for creating a new resource.
          */
-       public function create()
-    {
-        if (Auth::user()->role === 'konsumen') {
-            // Kalau konsumen, tolak akses
-            abort(403, 'Unauthorized');
-            // atau bisa juga redirect:
-            // return redirect()->route('books.index')->with('error', 'Konsumen tidak bisa menambah buku.');
-        } else {
-            // Kalau admin/petugas, ambil data dropdown
-            $publisher = publisher::all();
-            $categories = categories::all();
-            $subcategories = subcategories::all();
+        public function create()
+        {
+            if (Auth::user()->role === 'konsumen') {
+                // Kalau konsumen, tolak akses
+                abort(403, 'Unauthorized');
+                // atau bisa juga redirect:
+                // return redirect()->route('books.index')->with('error', 'Konsumen tidak bisa menambah buku.');
+            } else {
+                // Kalau admin/petugas, ambil data dropdown
+                $publisher = publisher::all();
+                $categories = categories::all();
+                $subcategories = subcategories::all();
 
-            return view('books.create', compact('publisher','categories','subcategories'));
+                return view('books.create', compact('publisher', 'categories', 'subcategories'));
+            }
         }
-    }
 
 
         /**
@@ -79,14 +79,14 @@
         public function store(Request $request)
         {
             $data = $request->validate([
-                'judul'            => 'required|string|max:255',
-                'id_penerbit'      => 'nullable|integer|exists:publisher,id_penerbit',
-                'pengarang'        => 'nullable|string|max:255',
-                'tahun_terbit'     => 'nullable|integer',
-                'id_kategori'      => 'nullable|integer|exists:categories,id_kategori',
-                'id_subkategori'  => 'nullable|integer|exists:subcategories,id_subkategori',
-                'isbn'             => 'nullable|string|max:100',
-                'barcode'          => 'nullable|string|max:100',
+                'judul' => 'required|string|max:255',
+                'id_penerbit' => 'nullable|integer|exists:publisher,id_penerbit',
+                'pengarang' => 'nullable|string|max:255',
+                'tahun_terbit' => 'nullable|integer',
+                'id_kategori' => 'nullable|integer|exists:categories,id_kategori',
+                'id_subkategori' => 'nullable|integer|exists:subcategories,id_subkategori',
+                'isbn' => 'nullable|string|max:100',
+                'barcode' => 'nullable|string|max:100',
                 'jumlah' => 'required|integer|min:0',
             ]);
 
@@ -105,7 +105,7 @@
             $categories = categories::all();
             $subcategories = subcategories::all();
 
-            return view('books.edit', compact('book','publisher','categories','subcategories'));
+            return view('books.edit', compact('book', 'publisher', 'categories', 'subcategories'));
         }
 
         /**
@@ -116,14 +116,14 @@
             $book = books::findOrFail($id_item);
 
             $data = $request->validate([
-                'judul'            => 'required|string|max:255',
-                'id_penerbit'      => 'nullable|integer|exists:publisher,id_penerbit',
-                'pengarang'        => 'nullable|string|max:255',
-                'tahun_terbit'     => 'nullable|integer',
-                'id_kategori'      => 'nullable|integer|exists:categories,id_kategori',
-                'id_subkategori'  => 'nullable|integer|exists:subcategories,id_subkategori',
-                'isbn'             => 'nullable|string|max:100',
-                'barcode'          => 'nullable|string|max:100',
+                'judul' => 'required|string|max:255',
+                'id_penerbit' => 'nullable|integer|exists:publisher,id_penerbit',
+                'pengarang' => 'nullable|string|max:255',
+                'tahun_terbit' => 'nullable|integer',
+                'id_kategori' => 'nullable|integer|exists:categories,id_kategori',
+                'id_subkategori' => 'nullable|integer|exists:subcategories,id_subkategori',
+                'isbn' => 'nullable|string|max:100',
+                'barcode' => 'nullable|string|max:100',
                 'jumlah' => 'required|integer|min:0',
             ]);
 

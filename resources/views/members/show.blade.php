@@ -1,258 +1,465 @@
-{{-- resources/views/members/show.blade.php --}}
 @extends('layouts.app')
 
+@section('title', 'Detail Member')
+
+@push('styles')
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #38a169;
+            --warning: #dd6b20;
+            --danger: #e53e3e;
+            --info: #3182ce;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            padding: 2rem;
+            margin: -30px -30px 2rem -30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 0.75rem;
+        }
+
+        .page-header h1 {
+            color: white;
+            font-weight: 700;
+            margin: 0;
+            font-size: 1.75rem;
+        }
+
+        .breadcrumb {
+            background: transparent;
+            margin: 0.5rem 0 0 0;
+            padding: 0;
+        }
+
+        .breadcrumb-item a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+        }
+
+        .breadcrumb-item.active {
+            color: white;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .member-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid var(--card-border);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            padding: 1.5rem;
+            color: white;
+        }
+
+        .card-header-custom h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .photo-section {
+            text-align: center;
+            padding: 2rem;
+            background: var(--table-header-bg);
+            transition: background-color 0.3s;
+        }
+
+        .member-photo {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 5px solid var(--card-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            object-fit: cover;
+            margin-bottom: 1rem;
+        }
+
+        .info-table {
+            width: 100%;
+        }
+
+        .info-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--body-color);
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        .info-table td:first-child {
+            font-weight: 600;
+            color: var(--sidebar-color);
+            width: 200px;
+            opacity: 0.8;
+        }
+
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge-status {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: inline-block;
+        }
+
+        .badge-verified {
+            background: #f0fff4;
+            color: var(--success);
+        }
+
+        .badge-pending {
+            background: #fffaf0;
+            color: var(--warning);
+        }
+
+        .badge-rejected {
+            background: #fff5f5;
+            color: var(--danger);
+        }
+
+        .btn-action {
+            padding: 0.625rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .ktp-preview {
+            max-width: 100%;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .verification-code-display {
+            background: linear-gradient(135deg, var(--success) 0%, #48bb78 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            margin: 1rem;
+        }
+
+        .verification-code-display .code {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                margin: -30px -15px 1.5rem -15px;
+                padding: 1.5rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .info-table td:first-child {
+                width: 100%;
+                display: block;
+                padding-bottom: 0.25rem;
+            }
+            .info-table td:last-child {
+                width: 100%;
+                display: block;
+                padding-top: 0.25rem;
+            }
+        }
+    </style>
+@endpush
+
 @section('content')
-    <div class="min-h-screen bg-gray-50 py-8">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Page Header -->
+    <div class="page-header fade-in">
+        <h1><i class="fas fa-user-circle me-2"></i> Detail Member</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('members.index') }}">Members</a></li>
+                <li class="breadcrumb-item active">{{ $member->name }}</li>
+            </ol>
+        </nav>
+    </div>
 
-            {{-- Header with Actions --}}
-            <div class="mb-8">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <a href="{{ route('members.index') }}" class="text-gray-600 hover:text-gray-900 transition">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                            </svg>
+    <!-- Alert Messages -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show fade-in" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show fade-in" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="row">
+        <!-- Profile Card -->
+        <div class="col-lg-4">
+            <div class="member-card fade-in">
+                <div class="photo-section">
+                    @if($member->photo_path)
+                        <img src="{{ route('members.download-photo', $member->id_member) }}"
+                             alt="{{ $member->name }}"
+                             class="member-photo">
+                    @else
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($member->name) }}&size=200&background=667eea&color=fff"
+                             alt="{{ $member->name }}"
+                             class="member-photo">
+                    @endif
+
+                    <h4 class="mb-2">{{ $member->name }}</h4>
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-id-badge me-1"></i>
+                        ID: #{{ str_pad($member->id_member, 6, '0', STR_PAD_LEFT) }}
+                    </p>
+
+                    <!-- Status Badge -->
+                    @if($member->status === 'verified')
+                        <span class="badge-status badge-verified">
+                        <i class="fas fa-check-circle me-1"></i> Terverifikasi
+                    </span>
+                    @elseif($member->status === 'pending')
+                        <span class="badge-status badge-pending">
+                        <i class="fas fa-clock me-1"></i> Menunggu Verifikasi
+                    </span>
+                    @else
+                        <span class="badge-status badge-rejected">
+                        <i class="fas fa-times-circle me-1"></i> Ditolak
+                    </span>
+                    @endif
+                </div>
+
+                <!-- Verification Code (if verified) -->
+                @if($member->status === 'verified' && $member->verification_code)
+                    <div class="verification-code-display">
+                        <small>Kode Verifikasi:</small>
+                        <div class="code">{{ $member->verification_code }}</div>
+                        <small><i class="fas fa-info-circle me-1"></i> Simpan kode ini</small>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="member-card fade-in">
+                <div class="p-3 d-grid gap-2">
+                    @if(auth()->user()->role === 'admin' || auth()->user()->id_user === $member->id_user)
+                        <a href="{{ route('members.edit', $member->id_member) }}" class="btn btn-primary btn-action">
+                            <i class="fas fa-edit me-2"></i> Edit Data
                         </a>
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900">Detail Member</h1>
-                            <p class="text-gray-600 mt-1">Informasi lengkap member perpustakaan</p>
-                        </div>
-                    </div>
+                    @endif
 
-                    <div class="flex gap-3">
-                        @can('update', $member)
-                            <a href="{{ route('members.edit', $member) }}"
-                               class="inline-flex items-center px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg shadow transition">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                                Edit
-                            </a>
-                        @endcan
-
-                        @can('delete', $member)
-                            <button onclick="confirmDelete()"
-                                    class="inline-flex items-center px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow transition">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                                Hapus
+                    @if(auth()->user()->role === 'admin' && $member->status === 'pending')
+                        <form action="{{ route('members.verify-manual', $member->id_member) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-action w-100"
+                                    onclick="return confirm('Verifikasi member ini?')">
+                                <i class="fas fa-check me-2"></i> Verifikasi Sekarang
                             </button>
-                        @endcan
-                    </div>
+                        </form>
+
+                        <form action="{{ route('members.reject', $member->id_member) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-warning btn-action w-100"
+                                    onclick="return confirm('Tolak member ini?')">
+                                <i class="fas fa-times me-2"></i> Tolak Pendaftar
+                            </button>
+                        </form>
+                    @endif
+
+                    @if(auth()->user()->role === 'admin')
+                        <form action="{{ route('members.destroy', $member->id_member) }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-action w-100"
+                                    onclick="return confirm('Yakin hapus member ini?')">
+                                <i class="fas fa-trash me-2"></i> Hapus Member
+                            </button>
+                        </form>
+                    @endif
+
+                    <a href="{{ route('members.index') }}" class="btn btn-secondary btn-action">
+                        <i class="fas fa-arrow-left me-2"></i> Kembali
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Information -->
+        <div class="col-lg-8">
+            <!-- Personal Information -->
+            <div class="member-card fade-in">
+                <div class="card-header-custom">
+                    <h5><i class="fas fa-user me-2"></i> Informasi Pribadi</h5>
+                </div>
+                <div class="p-3">
+                    <table class="info-table">
+                        <tr>
+                            <td>Nama Lengkap</td>
+                            <td><strong>{{ $member->name }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Email</td>
+                            <td>{{ $member->email }}</td>
+                        </tr>
+                        <tr>
+                            <td>No. Telepon</td>
+                            <td>{{ $member->no_telp }}</td>
+                        </tr>
+                        <tr>
+                            <td>Alamat</td>
+                            <td>{{ $member->alamat }}</td>
+                        </tr>
+                        <tr>
+                            <td>Role</td>
+                            <td><span class="badge bg-info">{{ ucfirst($member->role) }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Tanggal Daftar</td>
+                            <td>{{ $member->created_at->format('d F Y, H:i') }} WIB</td>
+                        </tr>
+                        @if($member->admin_verified_at)
+                            <tr>
+                                <td>Diverifikasi Pada</td>
+                                <td>{{ $member->admin_verified_at->format('d F Y, H:i') }} WIB</td>
+                            </tr>
+                        @endif
+                    </table>
                 </div>
             </div>
 
-            {{-- Flash Messages --}}
-            @if(session('success'))
-                <div class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm">
-                    <div class="flex">
-                        <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <p class="text-sm font-medium text-green-800">{{ session('success') }}</p>
+            <!-- KTP Information (Admin Only) -->
+            @if(($canViewKtp ?? false) || auth()->user()->role === 'admin')
+                <div class="member-card fade-in">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-id-card me-2"></i> Informasi KTP</h5>
+                    </div>
+                    <div class="p-3">
+                        @if($member->ktp_photo_path)
+                            <div class="mb-3">
+                                <img src="{{ route('members.download-ktp', $member->id_member) }}"
+                                     alt="KTP"
+                                     class="ktp-preview">
+                            </div>
+                            <a href="{{ route('members.download-ktp', $member->id_member) }}"
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-download me-2"></i> Download KTP
+                            </a>
+                        @else
+                            <p class="text-muted">Foto KTP belum diupload</p>
+                        @endif
+
+                        @if($member->ktp_verified_at)
+                            <div class="alert alert-success mt-3">
+                                <i class="fas fa-check-circle me-2"></i>
+                                KTP terverifikasi pada {{ $member->ktp_verified_at->format('d F Y, H:i') }}
+                            </div>
+                        @else
+                            <form action="{{ route('members.verify-ktp', $member->id_member) }}"
+                                  method="POST" class="mt-3">
+                                @csrf
+                                <input type="hidden" name="verified" value="1">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check me-2"></i> Verifikasi KTP
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {{-- Left Column - Profile Card --}}
-                <div class="lg:col-span-1">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
-                        {{-- Profile Photo --}}
-                        <div class="flex flex-col items-center">
-                            <div class="h-32 w-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl shadow-lg mb-4">
-                                {{ strtoupper(substr($member->name, 0, 1)) }}
-                            </div>
-                            <h2 class="text-2xl font-bold text-gray-900 text-center">{{ $member->name }}</h2>
-                            <p class="text-gray-500 text-sm mt-1">ID: #{{ $member->id_user }}</p>
-
-                            {{-- Status Badge --}}
-                            <div class="mt-4 flex gap-2">
-                                @if($member->status === 'active')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <span class="w-2 h-2 mr-1.5 bg-green-500 rounded-full"></span>
-                                Active
-                            </span>
-                                @elseif($member->status === 'inactive')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                <span class="w-2 h-2 mr-1.5 bg-gray-500 rounded-full"></span>
-                                Inactive
-                            </span>
-                                @else
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span>
-                                Suspended
-                            </span>
-                                @endif
-
-                                @if($member->role === 'admin')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                Admin
-                            </span>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Quick Info --}}
-                        <div class="mt-6 pt-6 border-t border-gray-200 space-y-4">
-                            <div class="flex items-center text-sm">
-                                <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                </svg>
-                                <span class="text-gray-700 truncate">{{ $member->email }}</span>
-                            </div>
-
-                            <div class="flex items-center text-sm">
-                                <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                                </svg>
-                                <span class="text-gray-700">{{ $member->no_telp }}</span>
-                            </div>
-
-                            <div class="flex items-start text-sm">
-                                <svg class="w-5 h-5 text-gray-400 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M12 11c0-3.314-2.239-6-5-6S2 7.686 2 11s2.239 6 5 6 5-2.686 5-6zM12 11h10"/>
-                                </svg>
-                                <span class="text-gray-700">{{ $member->alamat ?? 'Alamat belum diisi' }}</span>
-                            </div>
-                        </div>
+            <!-- Borrowing History -->
+            @if(isset($member->borrowing) && $member->borrowing->count() > 0)
+                <div class="member-card fade-in">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-book-reader me-2"></i> Riwayat Peminjaman (10 Terakhir)</h5>
                     </div>
-                </div>
-
-                {{-- Right Column - Member Details --}}
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Data Pribadi</h3>
-                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Nama Lengkap</dt>
-                                <dd class="text-gray-900">{{ $member->name }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Email</dt>
-                                <dd class="text-gray-900">{{ $member->email }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Nomor Telepon</dt>
-                                <dd class="text-gray-900">{{ $member->no_telp ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Alamat</dt>
-                                <dd class="text-gray-900">{{ $member->alamat ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Tanggal Daftar</dt>
-                                <dd class="text-gray-900">{{ $member->created_at->format('d M Y') }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Status Akun</dt>
-                                <dd>
-                                    @if($member->status === 'active')
-                                        <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Aktif</span>
-                                    @elseif($member->status === 'inactive')
-                                        <span class="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">Nonaktif</span>
-                                    @else
-                                        <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Suspended</span>
-                                    @endif
-                                </dd>
-                            </div>
-                        </dl>
-                    </div>
-
-                    {{-- Dokumen KTP dan Foto --}}
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Dokumen Keanggotaan</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h4 class="font-medium text-gray-700 mb-2">Foto Profil</h4>
-                                @if($member->foto)
-                                    <img src="{{ asset('storage/' . $member->foto) }}" alt="Foto Member"
-                                         class="w-48 h-48 object-cover rounded-lg shadow">
-                                @else
-                                    <div class="w-48 h-48 flex items-center justify-center bg-gray-100 text-gray-400 rounded-lg">
-                                        Tidak ada foto
-                                    </div>
-                                @endif
-                            </div>
-
-                            <div>
-                                <h4 class="font-medium text-gray-700 mb-2">KTP / Identitas</h4>
-                                @if($member->ktp)
-                                    <a href="{{ route('members.downloadKtp', $member->id_user) }}"
-                                       class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                        </svg>
-                                        Unduh KTP
-                                    </a>
-                                @else
-                                    <p class="text-gray-500 text-sm">Belum ada KTP yang diunggah.</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Riwayat Peminjaman --}}
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Riwayat Peminjaman</h3>
-                        @if($member->borrowings && $member->borrowings->count() > 0)
-                            <table class="w-full text-left text-sm">
+                    <div class="p-3">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
                                 <thead>
-                                <tr class="text-gray-600 border-b">
-                                    <th class="py-2">Judul Buku</th>
-                                    <th class="py-2">Tanggal Pinjam</th>
-                                    <th class="py-2">Batas Kembali</th>
-                                    <th class="py-2">Status</th>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Judul Buku</th>
+                                    <th>Tanggal Pinjam</th>
+                                    <th>Status</th>
+                                    <th>Kondisi</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach($member->borrowings as $borrow)
-                                    <tr class="border-b hover:bg-gray-50 transition">
-                                        <td class="py-2">{{ $borrow->book->judul ?? '-' }}</td>
-                                        <td class="py-2">{{ $borrow->tgl_pinjam->format('d M Y') }}</td>
-                                        <td class="py-2">{{ $borrow->batas_kembali->format('d M Y') }}</td>
-                                        <td class="py-2">
-                                            @if($borrow->status == 'dipinjam')
-                                                <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">Dipinjam</span>
-                                            @elseif($borrow->status == 'dikembalikan')
-                                                <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Dikembalikan</span>
+                                @foreach($member->borrowing as $index => $borrow)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>{{ $borrow->books->judul ?? 'N/A' }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($borrow->pinjam)->format('d M Y') }}</td>
+                                        <td>
+                                            @if($borrow->status === 'dipinjam')
+                                                <span class="badge bg-warning">Dipinjam</span>
+                                            @elseif($borrow->status === 'kembali')
+                                                <span class="badge bg-success">Kembali</span>
                                             @else
-                                                <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Terlambat</span>
+                                                <span class="badge bg-info">{{ ucfirst($borrow->status) }}</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($borrow->kondisi === 'baik')
+                                                <span class="badge bg-success">Baik</span>
+                                            @else
+                                                <span class="badge bg-danger">{{ ucfirst($borrow->kondisi) }}</span>
                                             @endif
                                         </td>
                                     </tr>
                                 @endforeach
                                 </tbody>
                             </table>
-                        @else
-                            <p class="text-gray-500">Belum ada riwayat peminjaman.</p>
-                        @endif
+                        </div>
                     </div>
                 </div>
-            </div>
+            @endif
         </div>
     </div>
-
-    {{-- Delete Confirmation --}}
-    <script>
-        function confirmDelete() {
-            if (confirm("Apakah Anda yakin ingin menghapus member ini?")) {
-                fetch("{{ route('members.destroy', $member) }}", {
-                    method: "DELETE",
-                    headers: {
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                    }
-                }).then(() => {
-                    window.location.href = "{{ route('members.index') }}";
-                });
-            }
-        }
-    </script>
 @endsection
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: '{{ session("success") }}',
+            timer: 3000,
+            showConfirmButton: false
+        });
+        @endif
+    </script>
+@endpush

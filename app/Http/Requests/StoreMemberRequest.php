@@ -1,94 +1,47 @@
 <?php
-// app/Http/Requests/StoreMemberRequest.php
 
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
 class StoreMemberRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Hanya admin yang bisa create member (atau public registration tergantung logic)
-        return $this->user()?->role === 'admin' || config('library.allow_public_registration');
+        return auth()->check();
     }
 
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:members,email'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'alamat' => ['required', 'string', 'max:500'],
-            'no_telp' => ['required', 'string', 'regex:/^[0-9+\-\s()]{8,20}$/'],
-
-            // KTP number - 16 digit untuk Indonesia
-            'ktp_number' => [
-                'required',
-                'string',
-                'regex:/^[0-9]{16}$/',
-                'unique:members,ktp_hash', // Check hash untuk prevent duplicate
-            ],
-
-            // KTP Photo - max 5MB
-            'ktp_photo' => [
-                'required',
-                'file',
-                'mimes:jpeg,png,pdf',
-                'max:5120', // 5MB
-            ],
-
-            // Profile Photo - max 2MB
-            'photo' => [
-                'nullable',
-                'image',
-                'mimes:jpeg,png,jpg',
-                'max:2048', // 2MB
-            ],
-
-            'role' => ['sometimes', 'in:member,admin'],
-            'status' => ['sometimes', 'in:active,inactive,suspended'],
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:members,email',
+            'password' => 'required|string|min:8|confirmed',
+            'no_telp' => 'required|string|max:20',
+            'alamat' => 'required|string|max:500',
+            'ktp_number' => 'required|string|size:16|unique:members,ktp_hash,' . hash('sha256', request('ktp_number')),
+            'ktp_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'ktp_number.regex' => 'Nomor KTP harus 16 digit angka.',
-            'ktp_number.unique' => 'Nomor KTP sudah terdaftar dalam sistem.',
-            'ktp_photo.mimes' => 'File KTP harus berformat JPEG, PNG, atau PDF.',
-            'ktp_photo.max' => 'Ukuran file KTP maksimal 5MB.',
+            'name.required' => 'Nama lengkap wajib diisi',
+            'email.required' => 'Email wajib diisi',
+            'email.unique' => 'Email sudah terdaftar',
+            'password.required' => 'Password wajib diisi',
+            'password.min' => 'Password minimal 8 karakter',
+            'password.confirmed' => 'Konfirmasi password tidak cocok',
+            'no_telp.required' => 'Nomor telepon wajib diisi',
+            'alamat.required' => 'Alamat wajib diisi',
+            'ktp_number.required' => 'Nomor KTP wajib diisi',
+            'ktp_number.size' => 'Nomor KTP harus 16 digit',
+            'ktp_number.unique' => 'Nomor KTP sudah terdaftar',
+            'ktp_photo.required' => 'Foto KTP wajib diupload',
+            'ktp_photo.image' => 'File harus berupa gambar',
+            'ktp_photo.max' => 'Ukuran foto KTP maksimal 2MB',
         ];
-    }
-
-    /**
-     * Custom validation untuk check KTP hash uniqueness
-     */
-    protected function prepareForValidation(): void
-    {
-        if ($this->has('ktp_number')) {
-            // Tambahkan hash untuk validation
-            $this->merge([
-                'ktp_hash_check' => hash('sha256', $this->ktp_number)
-            ]);
-        }
-    }
-
-    /**
-     * Tambahan: validate KTP hash sebelum insert
-     */
-    public function withValidator($validator)
-    {
-        $validator->after(function ($validator) {
-            if ($this->has('ktp_number')) {
-                $hash = hash('sha256', $this->ktp_number);
-                $exists = \App\Models\Members::where('ktp_hash', $hash)->exists();
-
-                if ($exists) {
-                    $validator->errors()->add('ktp_number', 'Nomor KTP sudah terdaftar dalam sistem.');
-                }
-            }
-        });
     }
 }

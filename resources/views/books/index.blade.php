@@ -24,7 +24,36 @@
     <!-- end search-->
 
     @if(session('success'))
-        <div class="alert alert-success">{{session('success')}}</div>
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i>
+            {{session('success')}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{session('error')}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    {{-- ✅ ALERT UNTUK KONSUMEN BELUM VERIFIED --}}
+    @php
+        $member = \App\Models\Members::where('id_user', Auth::id())->first();
+        $isVerified = $member && $member->status === 'verified';
+        $isKonsumen = Auth::user()->role === 'konsumen';
+    @endphp
+
+    @if($isKonsumen && !$isVerified)
+        <div class="alert alert-warning alert-dismissible fade show">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Perhatian!</strong> Anda belum bisa meminjam buku karena status member Anda belum diverifikasi.
+            Silakan tunggu verifikasi dari admin atau
+            <a href="{{ route('members.index') }}" class="alert-link">cek status member Anda</a>.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     @endif
 
     <div class="table-responsive">
@@ -32,9 +61,9 @@
             <thead class="table-dark">
             <tr class="text-center">
                 <th width="5%">ID</th>
-                <th width="60%">Judul</th>
+                <th width="50%">Judul</th>
                 <th width="10%">Jumlah</th>
-                <th width="25%">Aksi</th>
+                <th width="35%">Aksi</th>
             </tr>
             </thead>
             <tbody>
@@ -67,7 +96,23 @@
                             <i class="fas fa-eye"></i>
                         </a>
 
-                        <!-- tombol edit-->
+                        {{-- ✅ TOMBOL PINJAM UNTUK KONSUMEN VERIFIED --}}
+                        @if($isKonsumen && $isVerified)
+                            @if($b->jumlah_tata > 0)
+                                <button class="btn btn-sm btn-success"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalPinjam{{ $b->id_buku }}"
+                                        title="Pinjam Buku">
+                                    <i class="fas fa-book-reader"></i> Pinjam
+                                </button>
+                            @else
+                                <button class="btn btn-sm btn-secondary" disabled title="Stok Kosong">
+                                    <i class="fas fa-ban"></i> Kosong
+                                </button>
+                            @endif
+                        @endif
+
+                        <!-- tombol edit (Admin/Petugas Only) -->
                         @unless(Auth::user()->role === 'konsumen')
                             <button class="btn btn-sm btn-warning"
                                     data-bs-toggle="modal" data-bs-target="#modalEditBuku{{ $b->id_buku }}" title="Edit">
@@ -75,7 +120,7 @@
                             </button>
                         @endunless
 
-                        <!-- Tombol Hapus -->
+                        <!-- Tombol Hapus (Admin/Petugas Only) -->
                         @unless(Auth::user()->role === 'konsumen')
                             <button type="button" class="btn btn-sm btn-danger"
                                     data-bs-toggle="modal" data-bs-target="#modalHapus{{ $b->id_buku }}" title="Hapus">
@@ -97,6 +142,62 @@
     <div class="d-flex justify-content-center">
         {{ $book->links('pagination::bootstrap-5') }}
     </div>
+
+    {{-- ✅ MODAL PINJAM BUKU (UNTUK KONSUMEN) --}}
+    @if($isKonsumen && $isVerified)
+        @foreach($book as $b)
+            <div class="modal fade" id="modalPinjam{{ $b->id_buku }}" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-book-reader me-2"></i> Pinjam Buku
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form action="{{ route('borrowing.borrow') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="id_buku" value="{{ $b->id_buku }}">
+
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <strong>Judul Buku:</strong>
+                                    <p class="mb-1">{{ $b->judul }}</p>
+                                    <small class="text-muted">{{ $b->pengarang }} • {{ $b->publisher->nama_penerbit }}</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Tanggal Pengembalian <span class="text-danger">*</span></label>
+                                    <input type="date"
+                                           name="pengembalian"
+                                           class="form-control"
+                                           min="{{ date('Y-m-d', strtotime('+7 day')) }}"
+                                           max="{{ date('Y-m-d', strtotime('+7 days')) }}"
+                                           value="{{ date('Y-m-d', strtotime('+7 days')) }}"
+                                           required>
+                                    <small class="text-muted">Maksimal 14 hari dari hari ini</small>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small>
+                                        <strong>Info:</strong> Buku yang dipinjam akan otomatis dipilihkan eksemplar yang tersedia.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check me-2"></i> Pinjam Sekarang
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    @endif
 
     <!-- hapus buku -->
     @foreach($book as $b)

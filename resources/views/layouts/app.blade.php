@@ -257,9 +257,7 @@
                 <button class="notification-bell" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-bell"></i>
                     @if(Auth::user()->unreadNotifications->count() > 0)
-                        <span class="notification-badge">
-                        {{ Auth::user()->unreadNotifications->count() }}
-                    </span>
+                        <span class="notification-badge">{{ Auth::user()->unreadNotifications->count() }}</span>
                     @endif
                 </button>
 
@@ -273,20 +271,13 @@
                         @endif
                     </div>
 
-                    @forelse(Auth::user()->notifications->take(8) as $notification)
-                        <a href="{{ $notification->data['action_url'] ?? '#' }}"
-                           class="notification-item {{ $notification->read_at ? '' : 'unread' }}"
-                           onclick="markAsRead('{{ $notification->id }}', event)">
-                            <div class="d-flex align-items-start gap-3">
-                                <div class="notification-icon flex-shrink-0">
-                                    <i class="fas fa-user-plus"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <p class="mb-1 small fw-semibold">{{ $notification->data['message'] ?? 'Notifikasi baru' }}</p>
-                                    @if(isset($notification->data['member_name']))
-                                        <p class="mb-1 text-muted small">{{ $notification->data['member_name'] }}</p>
-                                    @endif
-                                    <p class="mb-0 notification-time">{{ $notification->created_at->diffForHumans() }}</p>
+                    @forelse (Auth::user()->notifications as $notif)
+                        <a href="#" class="notification-item {{ $notif->read_at ? '' : 'unread' }}">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="notification-icon"><i class="fas fa-info"></i></div>
+                                <div>
+                                    <div>{{ $notif->data['message'] ?? 'Notifikasi baru' }}</div>
+                                    <div class="notification-time">{{ $notif->created_at->diffForHumans() }}</div>
                                 </div>
                             </div>
                         </a>
@@ -308,6 +299,7 @@
             </div>
         @endif
 
+
         <!-- User Dropdown -->
         <div class="dropdown">
             <a class="text-white text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -327,58 +319,45 @@
     </div>
 </nav>
 
-<!-- Sidebar -->
-<div class="sidebar">
-    <nav class="nav flex-column px-2">
-        <a href="{{ route('dashboard') }}" class="nav-link {{ Request::is('dashboard') ? 'active' : '' }}">
-            <i class="fas fa-home me-2"></i> Dashboard
-        </a>
-        <a href="{{ route('books.index') }}" class="nav-link {{ Request::is('books*') ? 'active' : '' }}">
-            <i class="fas fa-book me-2"></i> Buku
-        </a>
-        <a href="{{ route('publisher.index') }}" class="nav-link {{ Request::is('publisher*') ? 'active' : '' }}">
-            <i class="fas fa-building me-2"></i> Penerbit
-        </a>
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle {{ Request::is('racks*') || Request::is('locations*') ? 'active' : '' }}" href="#" id="rackDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-archive me-2"></i> Rak & Lokasi
+{{-- Sidebar utama (ganti path sesuai projectmu jika beda) --}}
+<nav class="sidebar">
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('dashboard') }}">
+                <i class="fa fa-home"></i> Dashboard
             </a>
-            <ul class="dropdown-menu" aria-labelledby="rackDropdown">
-                <li><a class="dropdown-item {{ Request::is('racks*') ? 'active' : '' }}" href="{{ route('racks.index') }}">Rak</a></li>
-                <li><a class="dropdown-item {{ Request::is('locations*') ? 'active' : '' }}" href="{{ route('rackslocation.index') }}">Lokasi</a></li>
-            </ul>
-        </li>
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle {{ Request::is('categories*') || Request::is('subcategories*') ? 'active' : '' }}" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-tags me-2"></i> Kategori & Subkategori
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
-                <li><a class="dropdown-item {{ Request::is('categories*') ? 'active' : '' }}" href="{{ route('categories.index') }}">Kategori</a></li>
-                <li><a class="dropdown-item {{ Request::is('subcategories*') ? 'active' : '' }}" href="{{ route('subcategories.index') }}">Subkategori</a></li>
-            </ul>
         </li>
 
-        @if(in_array(Auth::user()->role, ['admin', 'petugas']))
-            <div class="mt-3 text-secondary small ps-3 fw-bold">Transaksi</div>
-            <a href="{{ route('sortbooks.index') }}" class="nav-link {{ Request::is('penataan*') ? 'active' : '' }}">
-                <i class="fas fa-layer-group me-2"></i> Penataan Buku
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('books.index') }}">
+                <i class="fa fa-book"></i> Buku
             </a>
-            <a href="{{ route('borrowing.index') }}" class="nav-link {{ Request::is('borrowing*') ? 'active' : '' }}">
-                <i class="fas fa-handshake me-2"></i> Peminjaman
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('publisher.index') }}">
+                <i class="fa fa-building"></i> Penerbit
             </a>
+        </li>
+        {{-- Peminjaman - tampil untuk admin + konsumen --}}
+        @if(auth()->check() && in_array(strtolower(auth()->user()->role ?? ''), ['admin', 'konsumen']))
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('borrowing.index') }}">
+                    <i class="fa fa-exchange-alt"></i> Peminjaman
+                </a>
+            </li>
         @endif
 
-        @if(Auth::user()->role === 'admin')
-            <div class="mt-3 text-secondary small ps-3 fw-bold">Sistem</div>
-            <a href="{{ route('users.index') }}" class="nav-link {{ Request::is('users*') ? 'active' : '' }}">
-                <i class="fas fa-users me-2"></i> Manajemen User
-            </a>
-            <a href="{{ route('members.index') }}" class="nav-link {{ Request::is('members*') ? 'active' : '' }}">
-                <i class="fas fa-id-card me-2"></i> Manajemen Member
-            </a>
+        {{-- Admin area --}}
+        @if(auth()->check() && strtolower(auth()->user()->role ?? '') === 'admin')
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('users.index') }}">
+                    <i class="fa fa-user-cog"></i> Manajemen User
+                </a>
+            </li>
         @endif
-    </nav>
-</div>
+    </ul>
+</nav>
 
 <!-- Content -->
 <div class="content-wrapper">

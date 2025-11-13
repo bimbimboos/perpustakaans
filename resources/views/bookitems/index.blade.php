@@ -1,312 +1,251 @@
 @extends('layouts.app')
 
 @section('content')
-    <h2 class="mb-3">Daftar Item Buku: {{ $book->judul }}</h2>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="mb-1">📚 Daftar Eksemplar Buku</h3>
+                        <p class="mb-0">
+                            <strong>{{ $book->judul }}</strong> •
+                            {{ $book->pengarang }} •
+                            {{ $book->publisher->nama_penerbit ?? '-' }} •
+                            {{ $book->tahun_terbit }}
+                        </p>
+                    </div>
+                    <a href="{{ route('books.show', $book->id_buku) }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </div>
+        </div>
 
-    {{-- 🔹 Tentukan ID rak asal --}}
-    @php
-        // Jika datang dari show rak, ambil dari query string ?from_rak=...
-        // Jika tidak ada, fallback ke id_rak dari item pertama (kalau ada)
-        $rackId = request('from_rak') ?? (isset($items) && $items->isNotEmpty() ? $items->first()->id_rak : null);
-    @endphp
+        <!-- Alert Messages -->
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle"></i> {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
 
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
 
-    {{-- 🔹 Tombol navigasi --}}
-    <a href="{{ route('books.index') }}" class="btn btn-primary mb-3">Daftar Buku</a>
+        <!-- Statistik Ringkas -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h6>Total Eksemplar</h6>
+                        <h2>{{ $items->total() }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h6>Tersedia</h6>
+                        <h2>{{ $items->where('status', 'tersedia')->count() }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <h6>Dipinjam</h6>
+                        <h2>{{ $items->where('status', 'dipinjam')->count() }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    @if($rackId)
-        {{-- 🔹 Jika ada rakId, maka tombol Rak akan kembali ke show rak asal --}}
-        <a href="{{ route('racks.show', $rackId) }}" class="btn btn-primary mb-3">Rak</a>
-    @else
-        {{-- 🔹 Jika tidak ada rakId, fallback ke index semua rak --}}
-        <a href="{{ route('racks.index') }}" class="btn btn-primary mb-3">Rak</a>
-    @endif
+        <!-- Tabel Eksemplar -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Daftar Eksemplar</h5>
+                @if(Auth::user()->role !== 'konsumen')
+                    <a href="{{ route('books.items.create', $book->id_buku) }}" class="btn btn-sm btn-success">
+                        <i class="fas fa-plus"></i> Tambah Eksemplar
+                    </a>
+                @endif
+            </div>
 
+            <div class="card-body">
+                @if($items->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                            <tr>
+                                <th width="5%">#</th>
+                                <th width="15%">Kode Item</th>
+                                <th width="15%">Lokasi Rak</th>
+                                <th width="12%">Status</th>
+                                <th width="12%">Kondisi</th>
+                                <th width="15%">Sumber</th>
+                                <th width="26%">Aksi</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach($items as $index => $item)
+                                <tr>
+                                    <td>{{ $items->firstItem() + $index }}</td>
+                                    <td><strong>{{ $item->id_item }}</strong></td>
+                                    <td>
+                                        @if($item->racks)
+                                            <span class="badge bg-info">
+                                            {{ $item->racks->kode_rak }}
+                                        </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ $item->racks->rackslocation->nama_lokasi ?? '-' }}
+                                            </small>
+                                        @else
+                                            <span class="text-muted">Belum ditata</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($item->status === 'tersedia')
+                                            <span class="badge bg-success">Tersedia</span>
+                                        @elseif($item->status === 'dipinjam')
+                                            <span class="badge bg-danger">Dipinjam</span>
+                                        @else
+                                            <span class="badge bg-secondary">{{ ucfirst($item->status) }}</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($item->kondisi === 'baik')
+                                            <span class="badge bg-success">Baik</span>
+                                        @elseif($item->kondisi === 'rusak')
+                                            <span class="badge bg-warning text-dark">Rusak</span>
+                                        @elseif($item->kondisi === 'hilang')
+                                            <span class="badge bg-danger">Hilang</span>
+                                        @endif
+                                    </td>
+                                    <td><small>{{ $item->sumber ?? '-' }}</small></td>
+                                    <td>
+                                        @php
+                                            $userRole = Auth::user()->role;
 
-    {{-- Tabel daftar item --}}
-    <div class="table table-responsive">
-        <table class="table table-bordered table-striped fade-in">
-            <thead class="table-dark">
-            <tr>
-                <th>ID</th>
-                <th>Kondisi</th>
-                <th>Status</th>
-                <th>Sumber</th>
-                <th>Rak</th>
-                <th>Barcode</th>
-                <th>Aksi</th>
-            </tr>
-            </thead>
-            <tbody>
-            @forelse ($items as $item)
-                <tr>
-                    <td>{{ ($items->currentPage() - 1) * $items->perPage() + $loop->iteration }}</td>
-                    <td>{{ $item->kondisi }}</td>
-                    <td>{{ $item->status }}</td>
-                    <td>{{ $item->sumber }}</td>
-                    <td>{{ $item->rak->nama ?? $item->id_rak }}</td>
-                    <td>{{ $item->barcode }}</td>
-                    <td>
-                        <!-- Tombol LIHAT -->
-                        <button type="button" class="btn btn-info btn-sm"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalShowItem{{ $item->id_item }}">
-                            Lihat
-                        </button>
+                                            // ✅ CEK APAKAH USER BISA PINJAM
+                                            $canBorrow = $item->status === 'tersedia'
+                                                      && $item->kondisi === 'baik';
 
-                        <!-- Tombol EDIT -->
-                        @unless(Auth::user()->role === 'konsumen')
-                            <button type="button" class="btn btn-warning btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalEditItem{{ $item->id_item }}">
-                                Edit
-                            </button>
-                        @endunless
+                                            // ✅ CEK APAKAH MEMBER SUDAH VERIFIED
+                                            $member = \App\Models\Members::where('id_user', Auth::id())->first();
+                                            $isVerified = $member && $member->status === 'verified';
+                                        @endphp
 
-                        <!-- Tombol HAPUS -->
-                        @unless(Auth::user()->role === 'konsumen')
-                            <button type="button" class="btn btn-danger btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalHapusItem{{ $item->id_item }}">
-                                Hapus
-                            </button>
-                        @endunless
+                                        @if($userRole === 'konsumen')
+                                            @if(!$isVerified)
+                                                <span class="text-warning small">
+                                                <i class="fas fa-lock"></i> Akun belum diverifikasi
+                                            </span>
+                                            @elseif($canBorrow)
+                                                <!-- ✅ TOMBOL PINJAM UNTUK KONSUMEN YANG VERIFIED -->
+                                                <button type="button" class="btn btn-sm btn-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalPinjam{{ $item->id_item }}">
+                                                    <i class="fas fa-hand-holding"></i> Pinjam
+                                                </button>
+                                            @else
+                                                <button class="btn btn-sm btn-secondary" disabled>
+                                                    @if($item->status === 'dipinjam')
+                                                        Sedang Dipinjam
+                                                    @elseif($item->kondisi !== 'baik')
+                                                        Kondisi {{ ucfirst($item->kondisi) }}
+                                                    @else
+                                                        Tidak Tersedia
+                                                    @endif
+                                                </button>
+                                            @endif
+                                        @else
+                                            <!-- ✅ ADMIN/PETUGAS: TOMBOL EDIT & HAPUS -->
+                                            <a href="{{ route('books.items.edit', [$book->id_buku, $item->id_item]) }}"
+                                               class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form action="{{ route('books.items.destroy', [$book->id_buku, $item->id_item]) }}"
+                                                  method="POST" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                        onclick="return confirm('Hapus eksemplar ini?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
 
-                        @unless(Auth::user()->role === 'konsumen')
-                            <button type="button" class="btn btn-primary btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#pinjamModal{{$item->id_item}}">
-                                Pinjam
-                            </button>
-                        @endunless
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="7" class="text-center">Belum ada item untuk buku ini</td>
-                </tr>
-            @endforelse
-            </tbody>
-        </table>
+                                <!-- ✅ MODAL PINJAM (UNTUK SETIAP ITEM) -->
+                                <div class="modal fade" id="modalPinjam{{ $item->id_item }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title">Pinjam Buku</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form action="{{ route('borrowing.borrow') }}" method="POST">
+                                                @csrf
+                                                <input type="hidden" name="id_buku" value="{{ $book->id_buku }}">
+                                                <input type="hidden" name="id_item" value="{{ $item->id_item }}">
+
+                                                <div class="modal-body">
+                                                    <div class="alert alert-info">
+                                                        <strong>Buku:</strong> {{ $book->judul }}<br>
+                                                        <strong>Item:</strong> {{ $item->id_item }}<br>
+                                                        <strong>Lokasi:</strong> {{ $item->racks->id_rak ?? '-' }}
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Tanggal Pengembalian <span class="text-danger">*</span></label>
+                                                        <input type="date"
+                                                               name="pengembalian"
+                                                               class="form-control"
+                                                               min="{{ date('Y-m-d', strtotime('+1 day')) }}"
+                                                               max="{{ date('Y-m-d', strtotime('+14 days')) }}"
+                                                               required>
+                                                        <small class="text-muted">Maksimal 14 hari dari hari ini</small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="fas fa-check"></i> Pinjam
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="mt-3">
+                        {{ $items->links() }}
+                    </div>
+                @else
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Belum ada eksemplar untuk buku ini.
+
+                        @if(Auth::user()->role !== 'konsumen')
+                            <a href="{{ route('books.items.create', $book->id_buku) }}" class="btn btn-sm btn-success ms-2">
+                                <i class="fas fa-plus"></i> Tambah Eksemplar
+                            </a>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
-
-    {{-- 🔹 Pagination tetap membawa query from_rak agar tidak hilang saat pindah halaman --}}
-    <div class="d-flex justify-content-center">
-        {{ $items->appends(request()->query())->links('pagination::bootstrap-5') }}
-    </div>
-
-    <!-- ============================= -->
-    <!-- Modal Tambah Item -->
-    <!-- ============================= -->
-    <div class="modal fade" id="modalTambahBuku" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Tambah Item Buku</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="{{ route('books.items.store', $book->id_buku) }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Kondisi</label>
-                            <select name="kondisi" class="form-control">
-                                <option value="baik">Baik</option>
-                                <option value="rusak">Rusak</option>
-                                <option value="hilang">Hilang</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-control">
-                                <option value="tersedia">Tersedia</option>
-                                <option value="dipinjam">Dipinjam</option>
-                                <option value="hilang">Hilang</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Sumber</label>
-                            <input type="text" name="sumber" value="{{ old('sumber') }}" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Rak</label>
-                            <select name="id_rak" class="form-control">
-                                @foreach($racks as $rack)
-                                    <option value="{{ $rack->id_rak }}">{{ $rack->nama ?? $rack->nama_rak }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================= -->
-    <!-- Modal Lihat/Edit/Hapus per Item -->
-    <!-- ============================= -->
-    @foreach ($items as $item)
-        <!-- Modal Lihat -->
-        <div class="modal fade" id="modalShowItem{{ $item->id_item }}" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered modal-md">
-                <div class="modal-content">
-                    <div class="modal-header bg-info text-white">
-                        <h5 class="modal-title">Detail Item </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p><b>Barcode:</b> {{ $item->barcode ?? '-' }}</p>
-                        <p><b>Kondisi:</b> {{ $item->kondisi }}</p>
-                        <p><b>Status:</b> {{ $item->status }}</p>
-                        <p><b>Sumber:</b> {{ $item->sumber ?? '-' }}</p>
-                        <p><b>Rak:</b> {{ $item->rak->nama ?? $item->id_rak }}</p>
-                        <hr>
-                        <p><b>Insert Date:</b> {{ $item->insert_date ? $item->insert_date->format('d M Y H:i') : '-' }}</p>
-                        <p><b>Modified Date:</b> {{ $item->modified_date ? $item->modified_date->format('d M Y H:i') : '-' }}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Edit -->
-        <div class="modal fade" id="modalEditItem{{ $item->id_item }}" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning">
-                        <h5 class="modal-title">Edit Item </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <form action="{{ route('books.items.update', [$book->id_buku, $item->id_item]) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Kondisi</label>
-                                <select name="kondisi" class="form-control">
-                                    <option value="baik" {{ $item->kondisi=='baik'?'selected':'' }}>Baik</option>
-                                    <option value="rusak" {{ $item->kondisi=='rusak'?'selected':'' }}>Rusak</option>
-                                    <option value="hilang" {{ $item->kondisi=='hilang'?'selected':'' }}>Hilang</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-control">
-                                    <option value="tersedia" {{ $item->status=='tersedia'?'selected':'' }}>Tersedia</option>
-                                    <option value="dipinjam" {{ $item->status=='dipinjam'?'selected':'' }}>Dipinjam</option>
-                                    <option value="hilang" {{ $item->status=='hilang'?'selected':'' }}>Hilang</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Sumber</label>
-                                <input type="text" name="sumber" value="{{ $item->sumber }}" class="form-control">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Rak</label>
-                                <select name="id_rak" class="form-control">
-                                    @foreach($racks as $rack)
-                                        <option value="{{ $rack->id_rak }}" {{ $item->id_rak==$rack->id_rak?'selected':'' }}>
-                                            {{ $rack->nama ?? $rack->nama_rak }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-warning">Simpan</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Hapus -->
-        <div class="modal fade" id="modalHapusItem{{ $item->id_item }}" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">Konfirmasi Hapus</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        Yakin ingin menghapus item buku <b>{{ $book->judul }}</b>?
-                    </div>
-                    <form action="{{ route('books.items.destroy', [$book->id_buku, $item->id_item]) }}" method="POST">
-                        @csrf
-                        @method('DELETE')
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-danger">Hapus</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal -->
-        <div class="modal fade" id="pinjamModal{{$item->id_item}}" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <form id="pinjamForm{{$item->id_item}}">
-                    @csrf
-                    <input type="hidden" name="id_item" value="{{ $item->id_item }}">
-                    <input type="hidden" name="id_buku" value="{{ $book->id_buku }}">
-                    <div class="modal-content">
-                        <div class="modal-header"><h5>Form Pinjam</h5></div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label>Tanggal Pengembalian</label>
-                                <input type="date" name="pengembalian" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label>Alamat</label>
-                                <input type="text" name="alamat" class="form-control">
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button class="btn btn-primary" id="submitPinjam">Kirim Permintaan</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <script>
-            document.addEventListener('DOMContentLoaded', function(){
-                document.querySelectorAll('form[id^="pinjamForm"]').forEach(form => {
-                    form.addEventListener('submit', function(e){
-                        e.preventDefault();
-                        const formData = new FormData(this);
-                        const itemId = formData.get('id_item');
-
-                        fetch(`/buku_items/${itemId}/pinjam`, {
-                            method: 'POST',
-                            headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'},
-                            body: formData
-                        })
-                            .then(r => r.json())
-                            .then(res => {
-                                if(res.success){
-                                    alert(res.message);
-                                    location.reload();
-                                } else {
-                                    alert('Error: ' + (res.message || 'gagal'));
-                                }
-                            })
-                            .catch(err => {
-                                alert('Error koneksi');
-                            });
-                    });
-                });
-            });
-        </script>
-
-    @endforeach
 @endsection

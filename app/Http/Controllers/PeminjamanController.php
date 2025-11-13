@@ -5,60 +5,453 @@ namespace App\Http\Controllers;
 use App\Models\Borrowing;
 use App\Models\Books;
 use App\Models\Bookitems;
+use App\Models\Members;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class PeminjamanController extends Controller
 {
+    /**
+     * INDEX - semua role bisa akses, tapi member hanya lihat data miliknya
+     */
     public function index()
     {
-        $borrowing = Borrowing::with(['user', 'buku', 'item'])->get();
+        // ambil semua peminjaman dengan relasi
+        if (Auth::check() && in_array(Auth::user()->role, ['admin', 'petugas'])) {
+            $borrowing = Borrowing::with(['users', 'books', 'bookitems', 'member'])
+                ->orderBy('pinjam', 'desc')
+                ->get();
+        } else {
+            // member atau non-admin hanya lihat peminjaman miliknya (jika dia juga member)
+            $member = Members::where('id_user', Auth::id())->first();
+            if ($member) {
+                $borrowing = Borrowing::with(['users', 'books', 'bookitems', 'member'])
+                    ->where('id_member', $member->id_member)
+                    ->orderBy('pinjam', 'desc')
+                    ->get();
+            } else {
+                $borrowing = collect();
+            }
+        }
+
         $books = Books::all();
         $users = User::all();
-        $bookitems = Bookitems::all();
+        $bookitems = Bookitems::where('status', 'tersedia')->get();
+
         return view('borrowing.index', compact('borrowing', 'books', 'users', 'bookitems'));
     }
 
+    /**
+     * STORE - oleh admin / petugas
+     * Mendukung multi-buku (id_buku[] / id_item[]) tanpa tabel baru.
+     * Akan membuat satu row per buku di table borrowing dalam 1 DB transaction.
+     */
     public function store(Request $request)
     {
-        $request->validate([
-            'id_buku' => 'required|exists:books,id_buku',
-            'id_item' => 'required|exists:bookitems,id_item',
-            'id_user' => 'required|exists:users,id_user',
-            'pengembalian' => 'required|date|after:today',
-        ]);
-
-        $bookitems = Bookitems::findOrFail($request->id_item);
-
-        if ($bookitems->status !== 'tersedia') {
-            return back()->with('error', 'Eksemplar ini sedang dipinjam.');
+        // hanya admin/petugas boleh create dari backend modal
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'petugas'])) {
+            abort(403, 'Akses ditolak!');
         }
 
-        $borrowing = Borrowing::create([
-            'id_user' => $request->id_user,
-            'id_buku' => $request->id_buku,
-            'id_item' => $request->id_item,
-            'pinjam' => now(),
-            'pengembalian' => $request->pengembalian,
-            'status' => 'dipinjam',
-        ]);
+        try {
+            // Ambil input buku & item
+            $idsBuku = $request->input('id_buku');
+            $idsItem = $request->input('id_item');
 
-        $bookitems->update(['status' => 'dipinjam']);
+            // Normalisasi ke array
+            $idsBuku = is_array($idsBuku) ? $idsBuku : ($idsBuku ? [$idsBuku] : []);
+            $idsItem = is_array($idsItem) ? $idsItem : ($idsItem ? [$idsItem] : []);
 
-        return back()->with('success', 'Peminjaman berhasil dibuat.');
+            if (count($idsBuku) === 0 && count($idsItem) === 0) {
+                return back()->with('error', 'Pilih minimal 1 buku/eksemplar.');
+            }
+
+            // Validasi member
+            $member = Members::where('id_user', $request->input('id_user', Auth::id()))->first();
+
+            if (!$member) {
+                return back()->with('error', 'Member tidak ditemukan.');
+            }
+
+            if ($member->status !== 'verified') {
+                return back()->with('error', 'Member belum diverifikasi.');
+            }
+
+            // Cek batas pinjaman aktif
+            $activeBorrowCount = Borrowing::where('id_member', $member->id_member)
+                ->whereIn('status', ['Dipinjam', 'dipinjam'])
+                ->count();
+
+            $requestedCount = max(count($idsBuku), count($idsItem));
+            if ($activeBorrowCount + $requestedCount > 2) {
+                return back()->with('error', 'Member sudah mencapai batas maksimal pinjaman (2 buku aktif).');
+            }
+
+            // Transaksi DB
+            DB::transaction(function () use ($idsBuku, $idsItem, $request, $member) {
+                // ✅ Generate ID transaksi baru yang seragam dan berurutan
+                $todayPrefix = 'TRX' . now()->format('Ymd');
+                $last = Borrowing::where('id_peminjaman', 'like', $todayPrefix . '%')
+                    ->orderBy('id_peminjaman', 'desc')
+                    ->first();
+
+                $lastNumber = $last ? (int) substr($last->id_peminjaman, -4) : 0;
+                $nextNumber = $lastNumber + 1;
+                $newTransactionId = $todayPrefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+                // Simpan tiap item dalam transaksi
+                $total = max(count($idsBuku), count($idsItem));
+
+                for ($i = 0; $i < $total; $i++) {
+                    $chosenItem = null;
+                    $bookId = $idsBuku[$i] ?? null;
+                    $itemId = $idsItem[$i] ?? null;
+
+                    if ($itemId) {
+                        $chosenItem = Bookitems::find($itemId);
+                        if (!$chosenItem) {
+                            throw new \Exception("Eksemplar dengan ID {$itemId} tidak ditemukan.");
+                        }
+                    } elseif ($bookId) {
+                        $chosenItem = Bookitems::where('id_buku', $bookId)
+                            ->where('status', 'tersedia')
+                            ->first();
+                        if (!$chosenItem) {
+                            throw new \Exception("Tidak ada eksemplar tersedia untuk buku ID {$bookId}.");
+                        }
+                    } else {
+                        continue;
+                    }
+
+                    if ($chosenItem->status !== 'tersedia') {
+                        throw new \Exception("Eksemplar {$chosenItem->id_item} tidak tersedia.");
+                    }
+
+                    // Simpan peminjaman
+                    Borrowing::create([
+                        'id_peminjaman' => $newTransactionId, // ✅ pakai format TRX
+                        'id_user' => Auth::id(),
+                        'id_member' => $member->id_member,
+                        'id_buku' => $chosenItem->id_buku,
+                        'id_item' => $chosenItem->id_item,
+                        'kondisi' => $request->input('kondisi', 'baik'),
+                        'status' => 'Dipinjam',
+                        'alamat_peminjam' => $member->alamat,
+                        'pinjam' => now(),
+                        'pengembalian' => $request->input('pengembalian', now()->addDays(7)),
+                        'is_extended' => false,
+                    ]);
+
+                    // Update stok & status buku
+                    $chosenItem->update(['status' => 'dipinjam']);
+                    Books::where('id_buku', $chosenItem->id_buku)->decrement('jumlah');
+                }
+            });
+
+            return back()->with('success', '✅ Peminjaman berhasil dibuat!');
+        } catch (\Exception $e) {
+            Log::error('Error store borrowing (multi): ' . $e->getMessage());
+            return back()->with('error', 'Gagal menyimpan peminjaman: ' . $e->getMessage());
+        }
     }
 
-    public function destroy($id)
-    {
-        $borrowing = Borrowing::findOrFail($id);
 
-        if ($borrowing->bookitems) {
-            $borrowing->bookitems->update(['status' => 'tersedia']);
+    /**
+     * PEMINJAMAN DARI USER (borrow) - user-initiated (frontend)
+     * Mendukung juga input single atau array; limit dan validasi sama.
+     */
+    public function borrow(Request $request)
+    {
+        try {
+            // allow single or multiple; we'll validate later
+            $idsBuku = $request->input('id_buku');
+            $idsItem = $request->input('id_item');
+
+            $idsBuku = is_array($idsBuku) ? $idsBuku : ($idsBuku ? [$idsBuku] : []);
+            $idsItem = is_array($idsItem) ? $idsItem : ($idsItem ? [$idsItem] : []);
+
+            $member = Members::where('id_user', Auth::id())->first();
+
+            if (!$member) {
+                return back()->with('error', 'Belum terdaftar sebagai member.');
+            }
+
+            if ($member->status !== 'verified') {
+                return back()->with('error', 'Akun member belum diverifikasi.');
+            }
+
+            $activeBorrowCount = Borrowing::where('id_member', $member->id_member)
+                ->where('status', 'Dipinjam')
+                ->count();
+
+            $requestedCount = max(count($idsBuku), count($idsItem));
+            if ($activeBorrowCount + $requestedCount > 2) {
+                return back()->with('error', 'Limit peminjaman (2 buku aktif) sudah tercapai.');
+            }
+
+            DB::transaction(function () use ($idsBuku, $idsItem, $request, $member) {
+                $totalToProcess = max(count($idsBuku), count($idsItem));
+
+                for ($i = 0; $i < $totalToProcess; $i++) {
+                    $bookId = $idsBuku[$i] ?? null;
+                    $itemId = $idsItem[$i] ?? null;
+                    $chosenItem = null;
+
+                    if ($itemId) {
+                        $chosenItem = Bookitems::find($itemId);
+                        if (!$chosenItem) {
+                            throw new \Exception("Eksemplar tidak ditemukan.");
+                        }
+                    } elseif ($bookId) {
+                        $chosenItem = Bookitems::where('id_buku', $bookId)
+                            ->where('status', 'tersedia')
+                            ->first();
+                        if (!$chosenItem) {
+                            throw new \Exception("Tidak ada eksemplar tersedia untuk buku ID {$bookId}.");
+                        }
+                    } else {
+                        continue;
+                    }
+
+                    if ($chosenItem->status !== 'tersedia') {
+                        throw new \Exception("Item buku sedang tidak tersedia.");
+                    }
+
+                    if ($chosenItem->kondisi !== 'baik') {
+                        throw new \Exception("Item buku tidak dalam kondisi baik.");
+                    }
+
+                    Borrowing::create([
+                        'id_user' => Auth::id(),
+                        'id_member' => $member->id_member,
+                        'id_buku' => $chosenItem->id_buku,
+                        'id_item' => $chosenItem->id_item,
+                        'pinjam' => now(),
+                        'pengembalian' => $request->input('pengembalian', now()->addDays(7)),
+                        'status' => 'Dipinjam',
+                        'kondisi' => 'baik',
+                        'alamat_peminjam' => $member->alamat,
+                        'is_extended' => false,
+                    ]);
+
+                    $chosenItem->update(['status' => 'dipinjam']);
+                    Books::where('id_buku', $chosenItem->id_buku)->decrement('jumlah');
+                }
+            });
+
+            return redirect()->route('borrowing.index')->with('success', '✅ Buku berhasil dipinjam!');
+
+        } catch (\Exception $e) {
+            Log::error('Error borrow: ' . $e->getMessage());
+            return back()->with('error', 'Gagal meminjam buku: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * PERPANJANG - hanya admin/petugas
+     */
+    public function perpanjang($id)
+    {
+        // guard role
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'petugas'])) {
+            // Return JSON if it's an AJAX request
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak!'], 403);
+            }
+            abort(403, 'Akses ditolak!');
         }
 
-        $borrowing->delete();
+        try {
+            $borrowing = Borrowing::with(['books'])->findOrFail($id);
 
-        return back()->with('success', 'Data peminjaman dihapus & status eksemplar dikembalikan.');
+            if (!in_array($borrowing->status, ['Dipinjam', 'dipinjam'])) {
+                if (request()->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Buku tidak sedang dipinjam.']);
+                }
+                return back()->with('error', 'Buku tidak sedang dipinjam.');
+            }
+
+            if ($borrowing->is_extended) {
+                if (request()->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Buku sudah pernah diperpanjang.']);
+                }
+                return back()->with('error', 'Buku sudah pernah diperpanjang.');
+            }
+
+            if (Carbon::now()->gt($borrowing->pengembalian)) {
+                if (request()->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Tidak bisa perpanjang, buku sudah terlambat dikembalikan!']);
+                }
+                return back()->with('error', 'Tidak bisa perpanjang, buku sudah terlambat dikembalikan!');
+            }
+
+            $newDate = Carbon::parse($borrowing->pengembalian)->addDays(7);
+
+            $borrowing->update([
+                'pengembalian' => $newDate,
+                'is_extended' => true,
+            ]);
+
+            Log::info('Peminjaman diperpanjang', [
+                'id_peminjaman' => $id,
+                'new_date' => $newDate,
+                'by' => Auth::id()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '📅 Buku "' . ($borrowing->books->judul ?? '-') . '" diperpanjang sampai ' . $newDate->format('d M Y')
+                ]);
+            }
+
+            return back()->with('success', '📅 Buku "' . ($borrowing->books->judul ?? '-') . '" diperpanjang sampai ' . $newDate->format('d M Y'));
+
+        } catch (\Exception $e) {
+            Log::error('Error perpanjang: ' . $e->getMessage());
+
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Gagal memperpanjang: ' . $e->getMessage()]);
+            }
+
+            return back()->with('error', 'Gagal memperpanjang: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * KEMBALIKAN - hanya admin/petugas
+     * Updated to handle both form data and JSON requests
+     */
+    public function kembalikan($id, Request $request)
+    {
+        // hanya admin/petugas boleh proses pengembalian
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'petugas'])) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak!'], 403);
+            }
+            abort(403, 'Akses ditolak!');
+        }
+
+        try {
+            $borrowing = Borrowing::with(['bookitems', 'books'])->findOrFail($id);
+
+            if (!in_array($borrowing->status, ['Dipinjam', 'dipinjam'])) {
+                if (request()->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Buku ini sudah dikembalikan.']);
+                }
+                return back()->with('error', 'Buku ini sudah dikembalikan.');
+            }
+
+            // Get data from JSON or form
+            $kondisi = $request->input('kondisi', $borrowing->kondisi);
+            $denda = $request->input('denda');
+            $catatan = $request->input('catatan');
+
+            // Validate
+            if (!in_array($kondisi, ['baik', 'rusak', 'hilang'])) {
+                if (request()->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Kondisi tidak valid.']);
+                }
+                return back()->with('error', 'Kondisi tidak valid.');
+            }
+
+            DB::transaction(function () use ($borrowing, $kondisi, $denda, $catatan) {
+                // update status peminjaman
+                $borrowing->status = 'Dikembalikan';
+                $borrowing->kondisi = $kondisi;
+                $borrowing->catatan = $catatan;
+
+                // simpan denda jika diberikan
+                if ($denda !== null && $denda > 0) {
+                    $borrowing->denda = $denda;
+                }
+
+                $borrowing->save();
+
+                // update status item buku menjadi tersedia
+                if ($borrowing->bookitems) {
+                    $borrowing->bookitems->update(['status' => 'tersedia']);
+                }
+
+                // kembalikan stok buku (increment jumlah)
+                if ($borrowing->books) {
+                    $borrowing->books->increment('jumlah');
+                }
+            });
+
+            Log::info('Buku dikembalikan', [
+                'id_peminjaman' => $id,
+                'denda' => $denda,
+                'kondisi' => $kondisi,
+                'by' => Auth::id(),
+                'returned_at' => now()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json(['success' => true, 'message' => '✅ Buku telah dikembalikan dan data disimpan.']);
+            }
+
+            return back()->with('success', '✅ Buku telah dikembalikan dan data disimpan.');
+
+        } catch (\Exception $e) {
+            Log::error('Error kembalikan: ' . $e->getMessage());
+
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Gagal mengembalikan buku: ' . $e->getMessage()]);
+            }
+
+            return back()->with('error', 'Gagal mengembalikan buku: ' . $e->getMessage());
+        }
+    }
+
+
+    /**
+     * ALIAS LAMA (backward compatible) - jangan hapus
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $borrowing = Borrowing::findOrFail($id);
+            $borrowing->update($request->all());
+
+            return back()->with('success', 'Data peminjaman berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal update: ' . $e->getMessage());
+        }
+    }
+
+    public function return($id)
+    {
+        return $this->kembalikan($id, request());
+    }
+
+    /**
+     * HAPUS (soft delete) - tetap ada
+     */
+    public function destroy($id)
+    {
+        try {
+            $borrowing = Borrowing::findOrFail($id);
+
+            if (in_array($borrowing->status, ['Dipinjam', 'dipinjam'])) {
+                if ($borrowing->bookitems) {
+                    $borrowing->bookitems->update(['status' => 'tersedia']);
+                }
+                if ($borrowing->books) {
+                    $borrowing->books->increment('jumlah');
+                }
+            }
+
+            $borrowing->delete();
+
+            return back()->with('success', 'Data peminjaman dihapus.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
+        }
     }
 }

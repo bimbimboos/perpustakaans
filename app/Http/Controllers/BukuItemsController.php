@@ -12,14 +12,17 @@ class BukuItemsController extends Controller
     public function index($book)
     {
         $book = books::with('Bookitems')->findOrFail($book);
-        // Ambil items per buku dengan paginate
+
+        // Ambil items per buku dengan paginate DAN relasi racks + lokasiRak
         $items = $book->bookitems()
+            ->with(['racks.rackslocation']) // ✅ Tambah relasi ini
             ->orderBy('id_item', 'asc')
             ->paginate(10)
             ->withQueryString();
+
         $racks = racks::all();
 
-        return view('bookitems.index', compact('book','items','racks'));
+        return view('bookitems.index', compact('book', 'items', 'racks'));
     }
 
     public function create($book)
