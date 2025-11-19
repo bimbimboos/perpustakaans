@@ -20,19 +20,19 @@ class Bookitems extends Model
     //relasi ke model buku
     public function books()
     {
-        return $this->belongsTo(books::class, 'id_buku');
+        return $this->belongsTo(Books::class, 'id_buku');
     }
 
     //relasi ke model rak
     public function racks()
     {
-        return $this->belongsTo(racks::class, 'id_rak');
+        return $this->belongsTo(Racks::class, 'id_rak', 'id_rak');
     }
 
     public function sortbooks()
     {
         // sortbooks model biasanya bernama PenataanBukus atau sortbooks
-        return $this->hasMany(sortbooks::class, 'id_buku', 'id_buku');
+        return $this->hasMany(Sortbooks::class, 'id_buku', 'id_buku');
     }
     public function borrowing()
     {

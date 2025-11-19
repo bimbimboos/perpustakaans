@@ -12,42 +12,40 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Change primary key to varchar untuk support format TRX
         Schema::table('borrowing', function (Blueprint $table) {
-            // Add transaction_id column
-            $table->string('transaction_id', 20)->nullable()->after('id_peminjaman');
-            $table->index('transaction_id');
+            // Drop auto increment first
+            $table->string('id_peminjaman', 20)->change();
         });
 
-        // Generate transaction_id untuk data yang sudah ada
+        // Generate transaction IDs untuk data yang ada
         $this->generateTransactionIds();
     }
 
     /**
-     * Generate transaction IDs for existing records
+     * Generate transaction IDs dengan format TRXYYYYMMDDnnnn
      */
     private function generateTransactionIds()
     {
-        // Group by user and date, then assign same transaction_id
         $borrowings = DB::table('borrowing')
-            ->whereNull('transaction_id')
             ->orderBy('pinjam', 'asc')
             ->get();
 
         $grouped = $borrowings->groupBy(function($item) {
-            return $item->id_user . '_' . date('Y-m-d', strtotime($item->pinjam));
+            return date('Ymd', strtotime($item->pinjam));
         });
 
-        $counter = 1;
-        foreach ($grouped as $group) {
-            $transactionId = 'TRX' . date('Ymd') . str_pad($counter, 4, '0', STR_PAD_LEFT);
-
+        foreach ($grouped as $date => $group) {
+            $counter = 1;
             foreach ($group as $borrowing) {
+                $newId = 'TRX' . $date . str_pad($counter, 4, '0', STR_PAD_LEFT);
+
                 DB::table('borrowing')
                     ->where('id_peminjaman', $borrowing->id_peminjaman)
-                    ->update(['transaction_id' => $transactionId]);
-            }
+                    ->update(['id_peminjaman' => $newId]);
 
-            $counter++;
+                $counter++;
+            }
         }
     }
 
@@ -56,9 +54,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('borrowing', function (Blueprint $table) {
-            $table->dropIndex(['transaction_id']);
-            $table->dropColumn('transaction_id');
-        });
+        // Tidak bisa reverse karena sudah ubah format ID
+        // Backup database sebelum migrate!
     }
 };

@@ -138,6 +138,39 @@
             margin: 0;
         }
 
+        /* Statistics Cards */
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.3;
+        }
+
+        /* Quick Access Section */
+        .quick-access-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+        }
+
+        .quick-access-btn {
+            transition: all 0.2s ease;
+        }
+
+        .quick-access-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -335,6 +368,12 @@
             border-left: 4px solid #3182ce;
         }
 
+        .alert-danger {
+            background: #fff5f5;
+            color: #742a2a;
+            border-left: 4px solid #e53e3e;
+        }
+
         .alert .btn {
             font-size: 0.875rem;
             padding: 0.375rem 0.75rem;
@@ -454,6 +493,35 @@
             </div>
         @endif
 
+        {{-- ALERT KETERLAMBATAN KRITIS --}}
+        @php
+            $terlambat = \App\Models\Borrowing::with(['users', 'member', 'books'])
+                ->whereIn('status', ['Dipinjam', 'dipinjam'])
+                ->whereDate('pengembalian', '<', now())
+                ->get();
+
+            $terlambatBerat = $terlambat->filter(function($b) {
+                return $b->getDaysLate() > 7;
+            });
+        @endphp
+
+        @if($terlambatBerat->count() > 0)
+            <div class="alert alert-danger alert-dismissible fade show fade-in" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Peringatan! Keterlambatan Kritis
+                </h5>
+                <p class="mb-2">Terdapat <strong>{{ $terlambatBerat->count() }} peminjaman</strong> yang terlambat lebih dari 7 hari!</p>
+                <hr>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('laporan.keterlambatan') }}" class="btn btn-sm btn-light">
+                        <i class="fas fa-eye"></i> Lihat Detail
+                    </a>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        @endif
+
         {{-- NOTIFIKASI MEMBER BARU --}}
         @php
             $unreadNotifications = auth()->user()->unreadNotifications()->where('type', 'App\Notifications\NewMemberRegistered')->get();
@@ -484,6 +552,112 @@
                 </ul>
             </div>
         @endif
+
+        {{-- QUICK ACCESS LAPORAN --}}
+        <div class="quick-access-card fade-in">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Access - Laporan & Monitoring</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{{ route('laporan.denda') }}" class="btn btn-outline-danger w-100 py-3 quick-access-btn">
+                            <i class="fas fa-money-bill-wave fa-2x d-block mb-2"></i>
+                            <strong>Daftar Denda</strong>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ route('laporan.riwayat') }}" class="btn btn-outline-primary w-100 py-3 quick-access-btn">
+                            <i class="fas fa-history fa-2x d-block mb-2"></i>
+                            <strong>Riwayat Transaksi</strong>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ route('laporan.keterlambatan') }}" class="btn btn-outline-warning w-100 py-3 quick-access-btn">
+                            <i class="fas fa-exclamation-triangle fa-2x d-block mb-2"></i>
+                            <strong>Keterlambatan</strong>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ route('laporan.buku-rusak') }}" class="btn btn-outline-secondary w-100 py-3 quick-access-btn">
+                            <i class="fas fa-tools fa-2x d-block mb-2"></i>
+                            <strong>Buku Rusak</strong>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- STATISTICS WIDGETS --}}
+        @php
+            $totalBuku = \App\Models\Books::count();
+            $totalPeminjaman = \App\Models\Borrowing::whereMonth('pinjam', now()->month)->count();
+            $totalMember = \App\Models\Members::where('status', 'verified')->count();
+            $bukuTersedia = \App\Models\Bookitems::where('status', 'tersedia')->count();
+        @endphp
+
+        <div class="row mb-4 fade-in">
+            <div class="col-md-3">
+                <div class="card stat-card border-primary shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Buku</h6>
+                                <h3 class="mb-0 text-primary">{{ $totalBuku }}</h3>
+                            </div>
+                            <div class="stat-icon text-primary">
+                                <i class="fas fa-book"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card border-success shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Peminjaman Bulan Ini</h6>
+                                <h3 class="mb-0 text-success">{{ $totalPeminjaman }}</h3>
+                            </div>
+                            <div class="stat-icon text-success">
+                                <i class="fas fa-handshake"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card border-info shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Member Aktif</h6>
+                                <h3 class="mb-0 text-info">{{ $totalMember }}</h3>
+                            </div>
+                            <div class="stat-icon text-info">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card border-warning shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Buku Tersedia</h6>
+                                <h3 class="mb-0 text-warning">{{ $bukuTersedia }}</h3>
+                            </div>
+                            <div class="stat-icon text-warning">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="menu-grid">
             <a href="{{ route('books.index') }}" class="menu-card blue fade-in">
@@ -550,7 +724,6 @@
                 </div>
             </a>
 
-            <!-- MENU PEMINJAMAN BARU -->
             <a href="{{ route('borrowing.index') }}" class="menu-card yellow fade-in">
                 <div class="menu-icon"><i class="fa fa-handshake"></i></div>
                 <div class="menu-content">

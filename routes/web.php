@@ -16,6 +16,7 @@
     use App\Http\Controllers\NotificationController;
     use App\Http\Controllers\MemberController;
     use App\Http\Controllers\Admin\MemberVerificationController;
+    use App\Http\Controllers\LaporanController;
 
     // ==========================
     // 🏠 ROUTE UTAMA
@@ -86,16 +87,7 @@
         Route::resource('sortbooks', PenataanBukusController::class);
     });
 
-    // ==========================
-    // 🧩 VERIFIKASI MEMBER (ADMIN/PETUGAS)
-    // ==========================
-    // ==========================
-    // 👥 MEMBER ROUTES (FIXED - ALL ROLES)
-    // ==========================
 
-    // ✅ KONSUMEN: Profile & Registration
-
-    // ✅ ADMIN & PETUGAS: Member Management
     // ==========================
     // 👥 MEMBER ROUTES (FIXED)
     // ==========================
@@ -163,4 +155,14 @@
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    });
+    // ==========================
+    // 📊 LAPORAN (ADMIN & PETUGAS)
+    // ==========================
+    Route::middleware(['auth', 'role:admin,petugas'])->prefix('laporan')->name('laporan.')->group(function () {
+        Route::get('/denda', [App\Http\Controllers\LaporanController::class, 'denda'])->name('denda');
+        Route::get('/riwayat', [App\Http\Controllers\LaporanController::class, 'riwayat'])->name('riwayat');
+        Route::get('/keterlambatan', [App\Http\Controllers\LaporanController::class, 'keterlambatan'])->name('keterlambatan');
+        Route::get('/buku-rusak', [App\Http\Controllers\LaporanController::class, 'bukuRusak'])->name('buku-rusak');
+        Route::get('/statistik', [App\Http\Controllers\LaporanController::class, 'statistik'])->name('statistik');
     });

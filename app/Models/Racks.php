@@ -4,7 +4,7 @@
 
     use Illuminate\Database\Eloquent\Model;
 
-    class racks extends Model
+    class Racks extends Model
     {
         protected $table='racks';
         protected $primaryKey='id_rak';
@@ -12,15 +12,15 @@
         protected $fillable=['barcode','nama','kolom','baris','kapasitas','id_lokasi','id_kategori'];
         public function rackslocation()
         {
-            return $this->belongsTo(rackslocation::class,'id_lokasi');
+            return $this->belongsTo(Rackslocation::class,'id_lokasi', 'id_lokasi');
         }
         public function categories()
         {
-            return $this->belongsTo(categories::class, 'id_kategori');
+            return $this->belongsTo(Categories::class, 'id_kategori');
         }
 
         public function sortbooks()
         {
-            return $this->hasMany(sortbooks::class,'id_rak');
+            return $this->hasMany(Sortbooks::class,'id_rak');
         }
     }

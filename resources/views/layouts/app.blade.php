@@ -251,53 +251,6 @@
             <i class="fa-solid fa-moon"></i>
         </button>
 
-        <!-- Notifications Bell -->
-        @if(in_array(Auth::user()->role, ['admin', 'operator']))
-            <div class="dropdown">
-                <button class="notification-bell" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-bell"></i>
-                    @if(Auth::user()->unreadNotifications->count() > 0)
-                        <span class="notification-badge">{{ Auth::user()->unreadNotifications->count() }}</span>
-                    @endif
-                </button>
-
-                <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
-                    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
-                        <h6 class="mb-0 fw-bold">Notifikasi</h6>
-                        @if(Auth::user()->unreadNotifications->count() > 0)
-                            <a href="javascript:void(0)" onclick="markAllAsRead()" class="text-primary small text-decoration-none">
-                                Tandai semua dibaca
-                            </a>
-                        @endif
-                    </div>
-
-                    @forelse (Auth::user()->notifications as $notif)
-                        <a href="#" class="notification-item {{ $notif->read_at ? '' : 'unread' }}">
-                            <div class="d-flex align-items-start gap-2">
-                                <div class="notification-icon"><i class="fas fa-info"></i></div>
-                                <div>
-                                    <div>{{ $notif->data['message'] ?? 'Notifikasi baru' }}</div>
-                                    <div class="notification-time">{{ $notif->created_at->diffForHumans() }}</div>
-                                </div>
-                            </div>
-                        </a>
-                    @empty
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-bell-slash fa-2x mb-2"></i>
-                            <p class="mb-0 small">Belum ada notifikasi</p>
-                        </div>
-                    @endforelse
-
-                    @if(Auth::user()->notifications->count() > 0)
-                        <div class="text-center border-top py-2">
-                            <a href="{{ route('notifications.index') }}" class="text-primary small text-decoration-none">
-                                Lihat Semua Notifikasi
-                            </a>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endif
 
 
         <!-- User Dropdown -->
@@ -322,25 +275,69 @@
 {{-- Sidebar utama (ganti path sesuai projectmu jika beda) --}}
 <nav class="sidebar">
     <ul class="nav flex-column">
+        {{-- DASHBOARD --}}
+        <li class="nav-item text-uppercase fw-bold px-3 mt-2 small text-secondary">Dashboard</li>
         <li class="nav-item">
             <a class="nav-link" href="{{ route('dashboard') }}">
                 <i class="fa fa-home"></i> Dashboard
             </a>
         </li>
 
+        {{-- LAYANAN SISTEM --}}
+        <li class="nav-item text-uppercase fw-bold px-3 mt-4 small text-secondary">Layanan Sistem</li>
         <li class="nav-item">
             <a class="nav-link" href="{{ route('books.index') }}">
                 <i class="fa fa-book"></i> Buku
             </a>
         </li>
 
+        @if(auth()->check() && strtolower(auth()->user()->role) === 'admin')
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('members.index') }}">
+                    <i class="fa fa-users"></i> Members
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('racks.index') }}">
+                    <i class="fa fa-archive"></i> Rak
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('rackslocation.index') }}">
+                    <i class="fa fa-map-marker-alt"></i> Lokasi Rak
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('categories.index') }}">
+                    <i class="fa fa-folder"></i> Kategori
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('subcategories.index') }}">
+                    <i class="fa fa-layer-group"></i> Subkategori
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('sortbooks.index') }}">
+                    <i class="fa fa-sort"></i> Penataan
+                </a>
+            </li>
+        @endif
+
         <li class="nav-item">
             <a class="nav-link" href="{{ route('publisher.index') }}">
                 <i class="fa fa-building"></i> Penerbit
             </a>
         </li>
-        {{-- Peminjaman - tampil untuk admin + konsumen --}}
-        @if(auth()->check() && in_array(strtolower(auth()->user()->role ?? ''), ['admin', 'konsumen']))
+
+        {{-- TRANSAKSI --}}
+        <li class="nav-item text-uppercase fw-bold px-3 mt-4 small text-secondary">Transaksi</li>
+        @if(auth()->check() && in_array(strtolower(auth()->user()->role), ['admin', 'konsumen']))
             <li class="nav-item">
                 <a class="nav-link" href="{{ route('borrowing.index') }}">
                     <i class="fa fa-exchange-alt"></i> Peminjaman
@@ -348,8 +345,9 @@
             </li>
         @endif
 
-        {{-- Admin area --}}
-        @if(auth()->check() && strtolower(auth()->user()->role ?? '') === 'admin')
+        {{-- ADMINISTRASI SISTEM --}}
+        @if(auth()->check() && strtolower(auth()->user()->role) === 'admin')
+            <li class="nav-item text-uppercase fw-bold px-3 mt-4 small text-secondary">Administrasi Sistem</li>
             <li class="nav-item">
                 <a class="nav-link" href="{{ route('users.index') }}">
                     <i class="fa fa-user-cog"></i> Manajemen User

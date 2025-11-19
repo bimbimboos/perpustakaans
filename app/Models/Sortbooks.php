@@ -25,7 +25,7 @@ class sortbooks extends Model
 
     public function racks()
     {
-        return $this->belongsTo(racks::class,'id_rak');
+        return $this->belongsTo(Racks::class,'id_rak');
     }
 
     // Accessor buat tampil nama user (kalo perlu relasi)
