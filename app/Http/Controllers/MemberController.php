@@ -76,7 +76,6 @@ class MemberController extends Controller
      */
     public function store(StoreMemberRequest $request)
     {
-        // Validation sudah dilakukan di FormRequest
         $validated = $request->validated();
 
         // Check duplicate KTP
@@ -84,64 +83,53 @@ class MemberController extends Controller
         if (Members::where('ktp_hash', $ktpHash)->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Nomor KTP sudah terdaftar!'
+                'message' => 'Nomor identitas sudah terdaftar!'
             ], 422);
         }
 
         DB::beginTransaction();
 
         try {
+            // Generate kode verifikasi
+            $verificationCode = Members::generateVerificationCode();
+            $tahunPembuatan = now()->year;
 
-            /**
-             * ===================================================
-             * 1. BUAT AKUN USER TERLEBIH DAHULU (WAJIB)
-             * ===================================================
-             */
-            $user = new User();
-            $user->name = $request->name;
-            $user->email = $request->email;
-            $user->password = Hash::make($request->password ?: '12345678'); // default kalau kosong
-            $user->role = 'member';
-            $user->save();
-
-
-            /**
-             * ===================================================
-             * 2. BUAT DATA MEMBER & KAITKAN KE USER
-             * ===================================================
-             */
+            // Buat data member (TANPA user, karena member tidak login)
             $member = new Members();
-            $member->id_user = $user->id_user;        // <= INI YANG HILANG KEMARIN
             $member->name = $request->name;
+            $member->tempat_lahir = $request->tempat_lahir;
+            $member->tanggal_lahir = $request->tanggal_lahir;
             $member->email = $request->email;
-            $member->password = Hash::make($request->password);
+            $member->agama = $request->agama;
             $member->alamat = $request->alamat;
+            $member->institusi = $request->institusi;
+            $member->alamat_institusi = $request->alamat_institusi;
+            $member->jenjang_pendidikan = $request->jenjang_pendidikan;
             $member->no_telp = $request->no_telp;
+            $member->no_hp_ortu = $request->no_hp_ortu;
             $member->role = 'member';
-            $member->status = 'pending';
+
+            // Langsung verified
+            $member->status = 'verified';
+            $member->verification_code = $verificationCode;
+            $member->tahun_pembuatan = $tahunPembuatan;
+            $member->admin_verified_at = now();
+            $member->verified_by = auth()->user()->id_user;
+
             $member->setKtpNumber($request->ktp_number);
             $member->save();
 
             $memberPath = "members/{$member->id_member}";
 
-
-            /**
-             * ===================================================
-             * 3. UPLOAD KTP
-             * ===================================================
-             */
+            // Upload KTP/Kartu Pelajar
             if ($request->hasFile('ktp_photo')) {
                 $file = $request->file('ktp_photo');
                 $filename = 'ktp_' . Str::random(16) . '.' . $file->getClientOriginalExtension();
                 $member->ktp_photo_path = $file->storeAs($memberPath, $filename, 'private');
+                $member->ktp_verified_at = now();
             }
 
-
-            /**
-             * ===================================================
-             * 4. UPLOAD PROFILE PHOTO
-             * ===================================================
-             */
+            // Upload Pas Foto
             if ($request->hasFile('photo')) {
                 $file = $request->file('photo');
                 $filename = 'photo_' . Str::random(16) . '.' . $file->getClientOriginalExtension();
@@ -150,37 +138,34 @@ class MemberController extends Controller
 
             $member->save();
 
+            // No Anggota (format: TAHUN-ID dengan padding 4 digit)
+            $noAnggota = $tahunPembuatan . '-' . str_pad($member->id_member, 4, '0', STR_PAD_LEFT);
 
-            /**
-             * ===================================================
-             * 5. LOG & RESPONSE
-             * ===================================================
-             */
-            \Log::info('New member created by staff', [
+            \Log::info('New member created', [
                 'member_id' => $member->id_member,
+                'no_anggota' => $noAnggota,
                 'name' => $member->name,
-                'email' => $member->email,
+                'verification_code' => $verificationCode,
                 'created_by' => auth()->user()->id_user,
-                'created_by_role' => auth()->user()->role,
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Member berhasil ditambahkan!',
+                'message' => "Member berhasil ditambahkan!",
                 'data' => [
                     'id' => $member->id_member,
+                    'no_anggota' => $noAnggota,
                     'name' => $member->name,
-                    'email' => $member->email,
+                    'verification_code' => $verificationCode,
+                    'tahun_pembuatan' => $tahunPembuatan,
                 ]
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Member store error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            \Log::error('Member store error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -188,7 +173,6 @@ class MemberController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * Display member detail
@@ -221,108 +205,18 @@ class MemberController extends Controller
     /**
      * Update member (Admin & Petugas only)
      */
-    public function update(UpdateMemberRequest $request, $id_member)
+    public function update(Request $request, $id_member)
     {
-        $member = Members::where('id_member', $id_member)->firstOrFail();
+        $member = Members::findOrFail($id_member);
 
-        if (!$this->isAdminOrPetugas()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk mengupdate data ini'
-            ], 403);
-        }
+        $member->no_telp = $request->no_telp;
+        $member->alamat = $request->alamat;
 
-        DB::beginTransaction();
+        $member->save();
 
-        try {
-            // Update basic info
-            $member->fill($request->only(['name', 'email', 'alamat', 'no_telp']));
-
-            // Update password if provided
-            if ($request->filled('password')) {
-                $member->password = Hash::make($request->password);
-            }
-
-            // Update status (admin only)
-            if ($request->filled('status') && auth()->user()->role === 'admin') {
-                $member->status = $request->status;
-            }
-
-            // Update KTP number if provided
-            if ($request->filled('ktp_number')) {
-                $ktpHash = hash('sha256', $request->ktp_number);
-
-                // Check if KTP already exists (exclude current member)
-                $existingKtp = Members::where('ktp_hash', $ktpHash)
-                    ->where('id_member', '!=', $member->id_member)
-                    ->exists();
-
-                if ($existingKtp) {
-                    DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Nomor KTP sudah terdaftar!'
-                    ], 422);
-                }
-
-                $member->setKtpNumber($request->ktp_number);
-                $member->ktp_verified_at = null; // Reset verification
-            }
-
-            // Update KTP photo
-            if ($request->hasFile('ktp_photo')) {
-                // Delete old photo
-                if ($member->ktp_photo_path) {
-                    Storage::disk('private')->delete($member->ktp_photo_path);
-                }
-
-                $file = $request->file('ktp_photo');
-                $filename = 'ktp_' . Str::random(16) . '.' . $file->getClientOriginalExtension();
-                $member->ktp_photo_path = $file->storeAs("members/{$member->id_member}", $filename, 'private');
-                $member->ktp_verified_at = null; // Reset verification
-            }
-
-            // Update profile photo
-            if ($request->hasFile('photo')) {
-                // Delete old photo
-                if ($member->photo_path) {
-                    Storage::disk('private')->delete($member->photo_path);
-                }
-
-                $file = $request->file('photo');
-                $filename = 'photo_' . Str::random(16) . '.' . $file->getClientOriginalExtension();
-                $member->photo_path = $file->storeAs("members/{$member->id_member}", $filename, 'private');
-            }
-
-            $member->save();
-
-            \Log::info('Member updated by staff', [
-                'member_id' => $member->id_member,
-                'updated_by' => auth()->user()->id_user,
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data member berhasil diupdate!',
-                'data' => [
-                    'id' => $member->id_member,
-                    'name' => $member->name,
-                    'status' => $member->status,
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Member update error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal update member: ' . $e->getMessage()
-            ], 500);
-        }
+        return redirect()->back()->with('success', 'Data member berhasil diperbarui!');
     }
+
 
     /**
      * Delete member (Admin & Petugas only)

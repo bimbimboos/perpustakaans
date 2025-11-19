@@ -17,10 +17,16 @@ class Members extends Model
     protected $fillable = [
         'id_user',
         'name',
+        'tempat_lahir',
+        'tanggal_lahir',
         'email',
-        'password',
         'alamat',
         'no_telp',
+        'no_hp_ortu',
+        'agama',
+        'institusi',
+        'alamat_institusi',
+        'jenjang_pendidikan',
         'ktp_number_enc',
         'ktp_hash',
         'ktp_photo_path',
@@ -28,13 +34,14 @@ class Members extends Model
         'ktp_verified_at',
         'role',
         'status',
-        'verification_code',     // ← NEW
-        'admin_verified_at',     // ← NEW
-        'verified_by',           // ← NEW
+        'verification_code',
+        'tahun_pembuatan',
+        'admin_verified_at',
+        'verified_by',
     ];
 
-    protected $hidden = ['password', 'ktp_number_enc'];
     protected $casts = [
+        'tanggal_lahir' => 'date',
         'ktp_verified_at' => 'datetime',
         'admin_verified_at' => 'datetime',
     ];

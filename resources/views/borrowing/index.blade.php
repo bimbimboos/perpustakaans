@@ -240,7 +240,7 @@
                                 <label class="form-label fw-bold"><i class="fas fa-user"></i> Peminjam (Member Verified)</label>
                                 <div class="input-group">
                                     <input type="text" id="selectedMemberName" class="form-control" placeholder="-- Pilih Peminjam --" readonly required>
-                                    <input type="hidden" name="id_user" id="id_user" required>
+                                    <input type="hidden" name="id_member" id="id_member" required>
                                     <button type="button" class="btn btn-primary" onclick="openMemberModal()">
                                         <i class="fas fa-search"></i> Pilih
                                     </button>
@@ -472,17 +472,17 @@
                                 <tbody id="memberTableBody">
                                 @foreach($users as $u)
                                     @php
-                                        $activeBorrowCount = \App\Models\Borrowing::where('id_user', $u->id_user)
+                                        $activeBorrowCount = \App\Models\Borrowing::where('id_member', $u->id_member)
                                             ->whereIn('status', ['Dipinjam', 'dipinjam', 'pending'])->count();
                                         $isMaxed = $activeBorrowCount >= 2;
-                                        $member = \App\Models\Members::where('id_user', $u->id_user)->first();
+                                        $member = \App\Models\Members::where('id_member', $u->id_member)->first();
                                         $isVerified = $member && $member->status === 'verified';
                                     @endphp
                                     @if($isVerified)
                                         <tr class="member-row" data-nama="{{ strtolower($u->name) }}" style="display: none;">
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm {{ $isMaxed ? 'btn-secondary' : 'btn-primary' }}"
-                                                        onclick="selectMember({{ $u->id_user }}, '{{ addslashes($u->name) }}', {{ $activeBorrowCount }})"
+                                                        onclick="selectMember({{ $u->id_member }}, '{{ addslashes($u->name) }}', {{ $activeBorrowCount }})"
                                                     {{ $isMaxed ? 'disabled' : '' }}>
                                                     {{ $isMaxed ? '❌' : 'Pilih' }}
                                                 </button>
@@ -576,7 +576,7 @@
         function selectMember(userId, userName, borrowCount) {
             console.log('✅ selectMember called:', userId, userName, borrowCount);
 
-            const userIdInput = document.getElementById('id_user');
+            const userIdInput = document.getElementById('id_member');
             const userNameInput = document.getElementById('selectedMemberName');
 
             if (!userIdInput || !userNameInput) {

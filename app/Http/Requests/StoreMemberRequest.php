@@ -32,29 +32,19 @@ class StoreMemberRequest extends FormRequest
     public function rules()
     {
         return [
-            // Update: Boleh ada titik (.) dan petik (') untuk nama gelar atau marga
-            'name' => ['required', 'string', 'max:255', 'regex:/^[\pL\s\-\.\']+$/u'],
-
-            'email' => ['nullable', 'email:rfc,dns', 'max:255', 'unique:members,email'],
-
-            // Update: Disesuaikan dengan UI (Min 8, harus ada angka dan huruf)
-            'password' => [
-                'required',
-                'string',
-                'min:8',             // Minimal 8 karakter (sebelumnya 6)
-                'regex:/[0-9]/',     // Harus ada angka
-                'regex:/[a-zA-Z]/',  // Harus ada huruf
-            ],
-
-            'no_telp' => ['required', 'string', 'regex:/^(08|62)\d{8,13}$/', 'unique:members,no_telp'],
-
+            'name' => ['required', 'string', 'max:255'],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tanggal_lahir' => ['required', 'date', 'before:today'],
+            'email' => ['nullable', 'email:rfc', 'max:255', 'unique:members,email'],
+            'agama' => ['required', 'in:Islam,Kristen,Katolik,Hindu,Buddha,Konghucu'],
             'alamat' => ['required', 'string', 'max:500'],
-
-            // Update: Pakai 'digits:16' lebih rapi daripada 'size' + 'regex' manual
-            'ktp_number' => ['required', 'string', 'digits:16'],
-
+            'institusi' => ['nullable', 'string', 'max:255'],
+            'alamat_institusi' => ['nullable', 'string', 'max:500'],
+            'jenjang_pendidikan' => ['required', 'in:SD,SMP,SMA/SMK,D3,S1,S2,S3,Umum'],
+            'no_telp' => ['required', 'string', 'regex:/^(08|62)\d{8,13}$/'],
+            'no_hp_ortu' => ['nullable', 'string', 'regex:/^(08|62)\d{8,13}$/'],
+            'ktp_number' => ['required', 'string', 'min:10', 'max:20'], // Bisa KTP atau Kartu Pelajar
             'ktp_photo' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:4096'],
-
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:4096'],
         ];
     }
@@ -63,32 +53,16 @@ class StoreMemberRequest extends FormRequest
     {
         return [
             'name.required' => 'Nama lengkap wajib diisi',
-            'name.regex' => 'Nama mengandung karakter yang tidak diizinkan',
-
-            'email.email' => 'Format email tidak valid',
-            'email.unique' => 'Email sudah terdaftar, gunakan email lain',
-
-            'password.required' => 'Password wajib diisi',
-            'password.min' => 'Password minimal 8 karakter',
-            'password.regex' => 'Password harus mengandung kombinasi huruf dan angka',
-
-            'no_telp.required' => 'Nomor telepon wajib diisi',
-            'no_telp.regex' => 'Nomor telepon harus diawali 08 atau 62',
-            'no_telp.unique' => 'Nomor telepon sudah terdaftar',
-
+            'tempat_lahir.required' => 'Tempat lahir wajib diisi',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi',
+            'tanggal_lahir.before' => 'Tanggal lahir harus sebelum hari ini',
+            'agama.required' => 'Agama wajib dipilih',
             'alamat.required' => 'Alamat wajib diisi',
-
-            'ktp_number.required' => 'Nomor KTP wajib diisi',
-            'ktp_number.digits' => 'Nomor KTP harus tepat 16 digit angka',
-
-            'ktp_photo.required' => 'Foto KTP wajib diupload',
-            'ktp_photo.image' => 'File KTP harus berupa gambar',
-            'ktp_photo.mimes' => 'Format foto KTP harus jpeg, jpg, atau png',
-            'ktp_photo.max' => 'Ukuran foto KTP maksimal 4MB',
-
-            'photo.image' => 'Foto profil harus berupa gambar',
-            'photo.mimes' => 'Format foto harus jpeg, jpg, atau png',
-            'photo.max' => 'Ukuran foto maksimal 4MB',
+            'jenjang_pendidikan.required' => 'Jenjang pendidikan wajib dipilih',
+            'no_telp.required' => 'Nomor HP wajib diisi',
+            'no_telp.regex' => 'Format nomor HP tidak valid',
+            'ktp_number.required' => 'Nomor identitas wajib diisi',
+            'ktp_photo.required' => 'Foto KTP/Kartu Pelajar wajib diupload',
         ];
     }
 }

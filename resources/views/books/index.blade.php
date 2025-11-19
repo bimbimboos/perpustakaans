@@ -41,7 +41,7 @@
 
     {{-- ✅ ALERT UNTUK KONSUMEN BELUM VERIFIED --}}
     @php
-        $member = \App\Models\Members::where('id_user', Auth::id())->first();
+        $member = \App\Models\Members::where('id_member', Auth::id())->first();
         $isVerified = $member && $member->status === 'verified';
         $isKonsumen = Auth::user()->role === 'konsumen';
     @endphp

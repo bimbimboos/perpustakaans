@@ -273,9 +273,9 @@
             <div class="member-card fade-in">
                 <div class="p-3 d-grid gap-2">
                     @if(auth()->user()->role === 'admin' || auth()->user()->id_user === $member->id_user)
-                        <a href="{{ route('members.edit', $member->id_member) }}" class="btn btn-primary btn-action">
+                        <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#editMemberModal">
                             <i class="fas fa-edit me-2"></i> Edit Data
-                        </a>
+                        </button>
                     @endif
 
                     @if(auth()->user()->role === 'admin' && $member->status === 'pending')
@@ -447,6 +447,50 @@
             @endif
         </div>
     </div>
+    <!-- MODAL EDIT MEMBER -->
+    <div class="modal fade" id="editMemberModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Data Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form action="{{ route('members.update', $member->id_member) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label">No. Telepon</label>
+                            <input type="text" name="no_telp" class="form-control"
+                                   value="{{ $member->no_telp }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Alamat</label>
+                            <textarea name="alamat" class="form-control" rows="2" required>{{ $member->alamat }}</textarea>
+                        </div>
+
+                        <!-- field lain sengaja tidak ditampilkan karena TIDAK BOLEH diubah -->
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- END MODAL -->
+
 @endsection
 
 @push('scripts')
