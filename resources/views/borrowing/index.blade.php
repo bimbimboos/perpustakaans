@@ -466,39 +466,47 @@
                                 <tr>
                                     <th width="10%">Pilih</th>
                                     <th>Nama</th>
+                                    <th>Tipe</th>
                                     <th>Status Peminjaman</th>
                                 </tr>
                                 </thead>
                                 <tbody id="memberTableBody">
-                                @foreach($users as $u)
+                                @foreach($members as $member)
                                     @php
-                                        $activeBorrowCount = \App\Models\Borrowing::where('id_member', $u->id_member)
+                                        $activeBorrowCount = \App\Models\Borrowing::where('id_member', $member->id_member)
                                             ->whereIn('status', ['Dipinjam', 'dipinjam', 'pending'])->count();
                                         $isMaxed = $activeBorrowCount >= 2;
-                                        $member = \App\Models\Members::where('id_member', $u->id_member)->first();
-                                        $isVerified = $member && $member->status === 'verified';
+                                        $memberType = $member->id_user ? 'Online' : 'Walk-in';
                                     @endphp
-                                    @if($isVerified)
-                                        <tr class="member-row" data-nama="{{ strtolower($u->name) }}" style="display: none;">
-                                            <td class="text-center">
-                                                <button type="button" class="btn btn-sm {{ $isMaxed ? 'btn-secondary' : 'btn-primary' }}"
-                                                        onclick="selectMember({{ $u->id_member }}, '{{ addslashes($u->name) }}', {{ $activeBorrowCount }})"
-                                                    {{ $isMaxed ? 'disabled' : '' }}>
-                                                    {{ $isMaxed ? '❌' : 'Pilih' }}
-                                                </button>
-                                            </td>
-                                            <td><strong>{{ $u->name }}</strong></td>
-                                            <td>
-                                                @if($isMaxed)
-                                                    <span class="badge bg-danger">❌ Limit ({{ $activeBorrowCount }}/2)</span>
-                                                @elseif($activeBorrowCount === 1)
-                                                    <span class="badge bg-warning">⚠️ {{ $activeBorrowCount }}/2 Dipinjam</span>
-                                                @else
-                                                    <span class="badge bg-success">✅ {{ $activeBorrowCount }}/2 Dipinjam</span>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endif
+                                    <tr class="member-row" data-nama="{{ strtolower($member->name) }}">
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm {{ $isMaxed ? 'btn-secondary' : 'btn-primary' }}"
+                                                    onclick="selectMember({{ $member->id_member }}, '{{ addslashes($member->name) }}', {{ $activeBorrowCount }})"
+                                                {{ $isMaxed ? 'disabled' : '' }}>
+                                                {{ $isMaxed ? '❌' : 'Pilih' }}
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <strong>{{ $member->name }}</strong>
+                                            <br><small class="text-muted">{{ $member->email }}</small>
+                                        </td>
+                                        <td>
+                                            @if($member->id_user)
+                                                <span class="badge bg-info">🌐 Online</span>
+                                            @else
+                                                <span class="badge bg-secondary">🏢 Walk-in</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($isMaxed)
+                                                <span class="badge bg-danger">❌ Limit ({{ $activeBorrowCount }}/2)</span>
+                                            @elseif($activeBorrowCount === 1)
+                                                <span class="badge bg-warning">⚠️ {{ $activeBorrowCount }}/2 Dipinjam</span>
+                                            @else
+                                                <span class="badge bg-success">✅ {{ $activeBorrowCount }}/2 Dipinjam</span>
+                                            @endif
+                                        </td>
+                                    </tr>
                                 @endforeach
                                 </tbody>
                             </table>
@@ -565,29 +573,33 @@
             const searchInput = document.getElementById('searchMember');
             if (searchInput) searchInput.value = '';
 
-            filterAndPaginateMembers();
             memberModal.show();
+
+            // ✅ PERBAIKAN: Panggil SETELAH modal shown
+            setTimeout(() => {
+                filterAndPaginateMembers();
+            }, 100);
         }
 
         function closeMemberModalOnly() {
             if (memberModal) memberModal.hide();
         }
 
-        function selectMember(userId, userName, borrowCount) {
-            console.log('✅ selectMember called:', userId, userName, borrowCount);
+        function selectMember(memberId, memberName, borrowCount) {
+            console.log('✅ selectMember called:', memberId, memberName, borrowCount);
 
-            const userIdInput = document.getElementById('id_member');
-            const userNameInput = document.getElementById('selectedMemberName');
+            const memberIdInput = document.getElementById('id_member');
+            const memberNameInput = document.getElementById('selectedMemberName');
 
-            if (!userIdInput || !userNameInput) {
+            if (!memberIdInput || !memberNameInput) {
                 console.error('❌ Input elements not found!');
                 return;
             }
 
-            userIdInput.value = userId;
-            userNameInput.value = userName;
+            memberIdInput.value = memberId;
+            memberNameInput.value = memberName;
 
-            updateMemberInfoDisplay(userName, borrowCount);
+            updateMemberInfoDisplay(memberName, borrowCount);
             closeMemberModalOnly();
         }
 

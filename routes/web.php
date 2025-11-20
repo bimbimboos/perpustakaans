@@ -96,6 +96,10 @@ Route::middleware(['auth', 'role:admin,petugas,konsumen'])->group(function () {
 // 👥 MEMBER ROUTES (OFFLINE REGISTRATION - FINAL)
 // ==========================
 
+// ==========================
+// 👥 MEMBER ROUTES (OFFLINE REGISTRATION - FINAL)
+// ==========================
+
 Route::middleware(['auth'])->prefix('members')->name('members.')->group(function () {
 
     // List Member
@@ -124,6 +128,20 @@ Route::middleware(['auth'])->prefix('members')->name('members.')->group(function
         return app(\App\Http\Controllers\MemberController::class)->downloadPhoto($id_member);
     })->name('download-photo');
 
+    // PRINT CARD – Tambahkan route ini (harus sebelum {id_member})
+    Route::get('/{id_member}/print-card', function ($id_member) {
+        // Bisa diakses oleh admin, petugas, atau member itu sendiri
+        $member = \App\Models\Members::findOrFail($id_member);
+
+        // Cek authorization
+        if (!in_array(strtolower(auth()->user()->role), ['admin', 'petugas'])
+            && auth()->user()->id_user !== $member->id_user) {
+            abort(403, 'Anda tidak memiliki akses');
+        }
+
+        return app(\App\Http\Controllers\MemberController::class)->printCard($id_member);
+    })->name('print-card');
+
     // SHOW – pakai path lain biar ga tabrakan
     Route::get('/detail/{id_member}', function ($id_member) {
         if (!in_array(strtolower(auth()->user()->role), ['admin', 'petugas'])) {
@@ -131,7 +149,6 @@ Route::middleware(['auth'])->prefix('members')->name('members.')->group(function
         }
         return app(\App\Http\Controllers\MemberController::class)->show($id_member);
     })->name('show');
-
 
     // UPDATE – jangan pakai /{id_member} lagi
     Route::put('/update/{id_member}', [\App\Http\Controllers\MemberController::class, 'update'])->name('update');
@@ -146,7 +163,6 @@ Route::middleware(['auth'])->prefix('members')->name('members.')->group(function
 
 // 👤 Konsumen: View Own Profile ONLY
 Route::middleware(['auth'])->get('/members/profile', [\App\Http\Controllers\MemberController::class, 'myProfile'])->name('members.profile');
-
 
 // ==========================
 // 👑 ADMIN SAJA

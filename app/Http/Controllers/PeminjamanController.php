@@ -26,8 +26,9 @@ class PeminjamanController extends Controller
                 ->orderBy('pinjam', 'desc')
                 ->get();
         } else {
-            // member atau non-admin hanya lihat peminjaman miliknya (jika dia juga member)
-            $member = Members::where('id_user', Auth::id())->first();
+            // ✅ PERBAIKAN: Cari member berdasarkan email user yang login
+            $member = Auth::user()->member; // menggunakan relasi yang baru dibuat
+
             if ($member) {
                 $borrowing = Borrowing::with(['users', 'books', 'bookitems', 'member'])
                     ->where('id_member', $member->id_member)
@@ -41,8 +42,9 @@ class PeminjamanController extends Controller
         $books = Books::all();
         $users = User::all();
         $bookitems = Bookitems::where('status', 'tersedia')->get();
+        $members = Members::all(); // ✅ TAMBAHAN untuk dropdown di view
 
-        return view('borrowing.index', compact('borrowing', 'books', 'users', 'bookitems'));
+        return view('borrowing.index', compact('borrowing', 'books', 'users', 'bookitems', 'members'));
     }
 
     /**
@@ -73,11 +75,17 @@ class PeminjamanController extends Controller
 
             $idsItem = $request->input('id_item');
 
-            // Get member data
-            $member = Members::where('id_user', $request->input('id_user'))->first();
+            // ✅ PERBAIKAN: Get member data berdasarkan user yang dipilih
+            $user = User::find($request->input('id_user'));
+
+            if (!$user) {
+                return back()->with('error', 'User tidak ditemukan.');
+            }
+
+            $member = $user->member; // menggunakan relasi
 
             if (!$member) {
-                return back()->with('error', 'Member tidak ditemukan untuk user yang dipilih.');
+                return back()->with('error', 'User ini belum terdaftar sebagai member.');
             }
 
             if ($member->status !== 'verified') {
@@ -214,7 +222,8 @@ class PeminjamanController extends Controller
             $idsBuku = is_array($idsBuku) ? $idsBuku : ($idsBuku ? [$idsBuku] : []);
             $idsItem = is_array($idsItem) ? $idsItem : ($idsItem ? [$idsItem] : []);
 
-            $member = Members::where('id_user', Auth::id())->first();
+            // ✅ PERBAIKAN: Cari member berdasarkan email user yang login
+            $member = Auth::user()->member; // menggunakan relasi
 
             if (!$member) {
                 return back()->with('error', 'Belum terdaftar sebagai member.');

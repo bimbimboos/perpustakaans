@@ -656,6 +656,18 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
+                            <!-- Gender -->
+                            <div class="col-md-6">
+                                <label for="create_gender" class="form-label">
+                                    Jenis Kelamin <span class="text-danger">*</span>
+                                </label>
+                            <select name="gender" class="form-control" required>
+                                <option value="">Pilih Jenis Kelamin</option>
+                                <option value="L">Laki-laki</option>
+                                <option value="P">Perempuan</option>
+                            </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
 
                             <!-- Alamat -->
                             <div class="col-12">

@@ -24,8 +24,8 @@ class MemberController extends Controller
         // Semua route member harus authenticated
         $this->middleware('auth');
 
-        // Hanya admin & petugas yang bisa akses member management
-        $this->middleware('role:admin,petugas')->except(['myProfile']);
+        // Hanya admin & petugas yang bisa akses member management (kecuali myProfile dan printCard)
+        $this->middleware('role:admin,petugas')->except(['myProfile', 'printCard']);
     }
 
     /**
@@ -217,7 +217,6 @@ class MemberController extends Controller
         return redirect()->back()->with('success', 'Data member berhasil diperbarui!');
     }
 
-
     /**
      * Delete member (Admin & Petugas only)
      */
@@ -265,6 +264,38 @@ class MemberController extends Controller
                 'message' => 'Gagal hapus member: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Print member card - Bisa diakses oleh admin, petugas, atau member sendiri
+     */
+    // Tambahkan method ini di MemberController.php
+
+    /**
+     * Print member card (3D Interactive)
+     */
+    public function printCard($id_member)
+    {
+        $member = Members::where('id_member', $id_member)->firstOrFail();
+
+        if (!$this->isAdminOrPetugas() && auth()->user()->id_user !== $member->id_user) {
+            abort(403, 'Anda tidak memiliki akses');
+        }
+
+        // Generate barcode terstruktur
+        // Format: G(gender)DD(day)MM(month)NNNN(daily counter)
+        $gender = strtoupper(substr($member->gender ?? 'U', 0, 1)); // L/P/U(unknown)
+        $day = \Carbon\Carbon::parse($member->created_at)->format('d');
+        $month = \Carbon\Carbon::parse($member->created_at)->format('m');
+        $dailyCounter = str_pad($member->id_member % 10000, 4, '0', STR_PAD_LEFT);
+
+        $member->barcode = "{$gender}{$day}{$month}{$dailyCounter}";
+
+        // No Anggota (format: TAHUN-ID dengan padding 4 digit)
+        $tahunPembuatan = $member->tahun_pembuatan ?? $member->created_at->year;
+        $member->formatted_id = $tahunPembuatan . '-' . str_pad($member->id_member, 4, '0', STR_PAD_LEFT);
+
+        return view('members.print-card', compact('member'));
     }
 
     /**
